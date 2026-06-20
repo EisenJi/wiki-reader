@@ -1104,6 +1104,10 @@
                 <button onclick="nextChapter()" id="btnNext" disabled title="Next chapter">›</button>
                 <div class="separator"></div>
                 <span class="book-title" id="bookTitle">No book loaded</span>
+                <button onclick="ttsTogglePlay()" id="btnTTS" title="朗读" style="background:transparent;border:none;color:var(--text-secondary);cursor:pointer;padding:2px 6px;border-radius:4px;margin-left:6px;display:none;align-items:center;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" id="iconPlay"><path d="M8 5v14l11-7z"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" id="iconPause" style="display:none"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/></svg>
+                </button>
             </div>
             
             <div class="toolbar-right">
@@ -1118,8 +1122,6 @@
                     <button onclick="setTheme('light')" id="themeLight" title="Light theme">☀️</button>
                     <button onclick="setTheme('sepia')" id="themeSepia" title="Sepia theme">📜</button>
                 </div>
-                <div class="separator"></div>
-                <button onclick="ttsTogglePlay()" id="btnTTS" title="朗读" style="background:transparent;border:none;color:var(--text-secondary);cursor:pointer;padding:4px 8px;border-radius:4px;font-size:14px;">▶️</button>
             </div>
         </div>
         
@@ -1931,19 +1933,27 @@
                 return chineseChars / text.length > 0.3 ? 'zh-CN' : 'en-US';
             },
             
-            showBar() { this.bar.classList.add('visible'); },
-            hideBar() { this.bar.classList.remove('visible'); },
+            showBar() {
+                this.bar.classList.add('visible');
+                const btn = document.getElementById('btnTTS');
+                if (btn) btn.style.display = 'inline-flex';
+            },
+            hideBar() {
+                this.bar.classList.remove('visible');
+                const btn = document.getElementById('btnTTS');
+                if (btn) btn.style.display = 'none';
+            },
             
             updatePlayIcon() {
                 const play = document.getElementById('ttsIconPlay');
                 const pause = document.getElementById('ttsIconPause');
-                if (this.state === 'playing') {
-                    play.style.display = 'none';
-                    pause.style.display = 'block';
-                } else {
-                    play.style.display = 'block';
-                    pause.style.display = 'none';
-                }
+                const btnPlay = document.getElementById('iconPlay');
+                const btnPause = document.getElementById('iconPause');
+                const isPlaying = this.state === 'playing';
+                if (play) play.style.display = isPlaying ? 'none' : 'block';
+                if (pause) pause.style.display = isPlaying ? 'block' : 'none';
+                if (btnPlay) btnPlay.style.display = isPlaying ? 'none' : 'block';
+                if (btnPause) btnPause.style.display = isPlaying ? 'block' : 'none';
             },
             
             updateSpeedButtons() {
@@ -2011,13 +2021,6 @@
                 window.speechSynthesis.speak(this.utterance);
                 this.state = 'playing';
                 this.updatePlayIcon();
-                this.updateToolbarIcon();
-            },
-            
-            updateToolbarIcon() {
-                const btn = document.getElementById('btnTTS');
-                if (!btn) return;
-                btn.textContent = this.state === 'playing' ? '⏸️' : '▶️';
             },
             
             start() {
@@ -2030,7 +2033,6 @@
                 window.speechSynthesis.cancel();
                 this.state = 'paused';
                 this.updatePlayIcon();
-                this.updateToolbarIcon();
             },
             
             resume() {
@@ -2045,7 +2047,6 @@
                 this.currentIndex = -1;
                 this.clearHighlight();
                 this.updatePlayIcon();
-                this.updateToolbarIcon();
                 this.hideBar();
             },
             
