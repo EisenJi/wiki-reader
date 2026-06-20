@@ -135,10 +135,28 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 13px;
-            transition: all 0.15s;
+            transition: all 0.15s ease;
             display: flex;
             align-items: center;
             gap: 4px;
+            position: relative;
+        }
+        
+        .toolbar button::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 2px;
+            background: var(--accent);
+            transition: all 0.15s ease;
+            transform: translateX(-50%);
+            border-radius: 1px;
+        }
+        
+        .toolbar button:hover::after {
+            width: 60%;
         }
         
         .toolbar button:hover {
@@ -495,6 +513,18 @@
             hyphens: auto;
             word-break: normal;
             overflow-wrap: break-word;
+            padding: 2px 8px;
+            margin-left: -8px;
+            margin-right: -8px;
+            border-radius: 4px;
+            transition: background-color 0.15s ease;
+        }
+        
+        /* Micro-interaction: paragraph hover highlight */
+        @media (hover: hover) {
+            .epub-container p:hover {
+                background-color: rgba(107, 159, 185, 0.04);
+            }
         }
         
         .epub-container blockquote {
@@ -527,6 +557,27 @@
             border: none;
             border-top: 1px solid var(--border);
             margin: 2em 0;
+        }
+        
+        /* ============================================
+           READING PROGRESS INDICATOR
+           ============================================ */
+        .reading-progress {
+            position: fixed;
+            right: 0;
+            top: 0;
+            width: 2px;
+            height: 100%;
+            background: var(--border);
+            z-index: 1000;
+            pointer-events: none;
+        }
+        
+        .reading-progress-fill {
+            width: 100%;
+            background: var(--accent);
+            opacity: 0.3;
+            transition: height 0.3s ease-out;
         }
         
         /* ============================================
@@ -956,10 +1007,18 @@
 </head>
 <body data-theme="dark">
     <div class="app">
+        <!-- Reading Progress Indicator -->
+        <div class="reading-progress" id="readingProgress">
+            <div class="reading-progress-fill" id="readingProgressFill" style="height: 0%"></div>
+        </div>
+        
         <!-- Toolbar -->
         <div class="toolbar">
             <div class="toolbar-left">
-                <button onclick="showImportModal()" title="Import EPUB and Wiki">📥 Import</button>
+                <button onclick="showImportModal()" title="Import EPUB and Wiki" style="display:flex;align-items:center;gap:4px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    Import
+                </button>
                 <div class="separator"></div>
                 <button onclick="prevChapter()" id="btnPrev" disabled title="Previous chapter">‹</button>
                 <div class="chapter-progress" id="chapterProgress" style="display:none;">
@@ -1698,9 +1757,20 @@
             const divider = document.getElementById('divider');
             const splitView = document.getElementById('splitView');
             
-            // Swap DOM positions
-            splitView.insertBefore(wikiPanel, bookPanel);
-            splitView.insertBefore(divider, bookPanel);
+            // Get current order
+            const children = Array.from(splitView.children);
+            const bookIndex = children.indexOf(bookPanel);
+            const wikiIndex = children.indexOf(wikiPanel);
+            
+            if (bookIndex < wikiIndex) {
+                // Book is on the left, move wiki to the left
+                splitView.insertBefore(wikiPanel, bookPanel);
+                splitView.insertBefore(divider, bookPanel);
+            } else {
+                // Wiki is on the left, move book to the left
+                splitView.insertBefore(bookPanel, wikiPanel);
+                splitView.insertBefore(divider, wikiPanel);
+            }
         }
         
         // ============================================
@@ -1738,6 +1808,20 @@
         }
         
         // ============================================
+        // READING PROGRESS
+        // ============================================
+        function updateReadingProgress() {
+            const bookContent = document.getElementById('bookContent');
+            const progressFill = document.getElementById('readingProgressFill');
+            if (!bookContent || !progressFill) return;
+            
+            const scrollTop = bookContent.scrollTop;
+            const scrollHeight = bookContent.scrollHeight - bookContent.clientHeight;
+            const progress = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0;
+            progressFill.style.height = `${progress}%`;
+        }
+        
+        // ============================================
         // MODAL CLOSE
         // ============================================
         document.getElementById('importModal').addEventListener('click', (e) => {
@@ -1748,6 +1832,9 @@
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') hideImportModal();
         });
+        
+        // Setup reading progress listener
+        document.getElementById('bookContent').addEventListener('scroll', updateReadingProgress);
     </script>
 </body>
 </html>
