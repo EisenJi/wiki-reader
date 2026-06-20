@@ -1504,6 +1504,7 @@
             
             document.getElementById('bookTitle').textContent = file.name;
             document.getElementById('bookPanelTitle').textContent = file.name;
+            document.getElementById('btnTTS').style.display = 'inline-flex';
             document.getElementById('btnPrev').disabled = true;
             document.getElementById('btnNext').disabled = chapters.length <= 1;
             updateChapterProgress();
