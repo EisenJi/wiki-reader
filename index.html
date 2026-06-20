@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wiki Reader</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .app {
+            display: flex;
+            height: 100vh;
+        }
+        
+        /* Sidebar - File Tree */
+        .sidebar {
+            width: 280px;
+            min-width: 280px;
+            background: #252525;
+            border-right: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .sidebar-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .sidebar-header h2 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 0;
+        }
+        
+        .tree-item {
+            padding: 6px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            transition: background 0.15s;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .tree-item:hover {
+            background: #2a2a2a;
+        }
+        
+        .tree-item.active {
+            background: #3a3a3a;
+            color: #fff;
+        }
+        
+        .tree-item.directory {
+            font-weight: 500;
+            color: #aaa;
+        }
+        
+        .tree-item.file {
+            color: #ccc;
+            padding-left: 32px;
+        }
+        
+        .tree-item .icon {
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #666;
+            flex-shrink: 0;
+        }
+        
+        .tree-item.directory .icon {
+            color: #d4a373;
+        }
+        
+        .tree-item.file .icon {
+            color: #6b9fb9;
+        }
+        
+        /* Main Content */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        /* Toolbar */
+        .toolbar {
+            height: 44px;
+            background: #252525;
+            border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+        
+        .toolbar button {
+            background: #3a3a3a;
+            border: 1px solid #444;
+            color: #ccc;
+            padding: 6px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.15s;
+        }
+        
+        .toolbar button:hover {
+            background: #444;
+            border-color: #555;
+        }
+        
+        .toolbar button.primary {
+            background: #4a7c59;
+            border-color: #5a8c69;
+            color: #fff;
+        }
+        
+        .toolbar button.primary:hover {
+            background: #5a8c69;
+        }
+        
+        .toolbar-separator {
+            width: 1px;
+            height: 20px;
+            background: #444;
+            margin: 0 4px;
+        }
+        
+        .toolbar .path-display {
+            flex: 1;
+            font-size: 12px;
+            color: #888;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding: 0 8px;
+        }
+        
+        /* Split View */
+        .split-view {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        
+        .panel {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            background: #1e1e1e;
+        }
+        
+        .panel-header {
+            height: 36px;
+            background: #2a2a2a;
+            border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            font-size: 12px;
+            color: #888;
+            gap: 8px;
+        }
+        
+        .panel-header .panel-title {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .panel-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 32px;
+            line-height: 1.7;
+        }
+        
+        .panel-divider {
+            width: 4px;
+            background: #333;
+            cursor: col-resize;
+            position: relative;
+        }
+        
+        .panel-divider:hover {
+            background: #444;
+        }
+        
+        .panel-divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 2px;
+            height: 24px;
+            background: #555;
+            border-radius: 1px;
+        }
+        
+        /* Markdown Styles */
+        .markdown-body {
+            color: #d0d0d0;
+            font-size: 14px;
+        }
+        
+        .markdown-body h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #333;
+            color: #fff;
+        }
+        
+        .markdown-body h2 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 24px;
+            margin-bottom: 12px;
+            color: #e8e8e8;
+        }
+        
+        .markdown-body h3 {
+            font-size: 15px;
+            font-weight: 600;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            color: #ddd;
+        }
+        
+        .markdown-body p {
+            margin-bottom: 12px;
+        }
+        
+        .markdown-body a {
+            color: #6b9fb9;
+            text-decoration: none;
+        }
+        
+        .markdown-body a:hover {
+            text-decoration: underline;
+        }
+        
+        .markdown-body ul, .markdown-body ol {
+            margin-bottom: 12px;
+            padding-left: 24px;
+        }
+        
+        .markdown-body li {
+            margin-bottom: 4px;
+        }
+        
+        .markdown-body blockquote {
+            border-left: 3px solid #4a7c59;
+            margin: 12px 0;
+            padding-left: 16px;
+            color: #aaa;
+            font-style: italic;
+        }
+        
+        .markdown-body code {
+            background: #2a2a2a;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
+            font-size: 12px;
+            color: #c9a86c;
+        }
+        
+        .markdown-body pre {
+            background: #252525;
+            padding: 16px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 12px 0;
+        }
+        
+        .markdown-body pre code {
+            background: none;
+            padding: 0;
+        }
+        
+        .markdown-body hr {
+            border: none;
+            border-top: 1px solid #333;
+            margin: 20px 0;
+        }
+        
+        .markdown-body table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            font-size: 13px;
+        }
+        
+        .markdown-body th, .markdown-body td {
+            border: 1px solid #333;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        
+        .markdown-body th {
+            background: #2a2a2a;
+            font-weight: 600;
+        }
+        
+        .markdown-body tr:nth-child(even) {
+            background: #252525;
+        }
+        
+        .markdown-body .wikilink {
+            color: #6b9fb9;
+            cursor: pointer;
+        }
+        
+        .markdown-body .wikilink:hover {
+            text-decoration: underline;
+        }
+        
+        /* EPUB Styles */
+        .epub-content {
+            color: #d0d0d0;
+            font-size: 15px;
+            line-height: 1.8;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        
+        .epub-content h1, .epub-content h2, .epub-content h3 {
+            color: #fff;
+            margin-top: 24px;
+            margin-bottom: 16px;
+        }
+        
+        .epub-content p {
+            margin-bottom: 16px;
+            text-align: justify;
+        }
+        
+        /* Empty State */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #666;
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.3;
+        }
+        
+        .empty-state h3 {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #888;
+        }
+        
+        .empty-state p {
+            font-size: 13px;
+            color: #666;
+            max-width: 300px;
+        }
+        
+        /* Import Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal-overlay.active {
+            display: flex;
+        }
+        
+        .modal {
+            background: #2a2a2a;
+            border-radius: 8px;
+            width: 500px;
+            max-width: 90vw;
+            border: 1px solid #444;
+        }
+        
+        .modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h3 {
+            font-size: 15px;
+            font-weight: 600;
+            color: #fff;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }
+        
+        .modal-close:hover {
+            background: #3a3a3a;
+            color: #fff;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #aaa;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .form-group input[type="file"],
+        .form-group input[type="text"] {
+            width: 100%;
+            padding: 10px 12px;
+            background: #1e1e1e;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #ccc;
+            font-size: 13px;
+        }
+        
+        .form-group input[type="file"]::file-selector-button {
+            background: #3a3a3a;
+            border: 1px solid #444;
+            color: #ccc;
+            padding: 4px 12px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-right: 12px;
+        }
+        
+        .form-group .hint {
+            font-size: 11px;
+            color: #666;
+            margin-top: 4px;
+        }
+        
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 1px solid #333;
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        
+        .modal-footer button {
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            border: 1px solid #444;
+            background: #3a3a3a;
+            color: #ccc;
+        }
+        
+        .modal-footer button.primary {
+            background: #4a7c59;
+            border-color: #5a8c69;
+            color: #fff;
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #666;
+            font-size: 13px;
+        }
+        
+        .loading::after {
+            content: '';
+            width: 16px;
+            height: 16px;
+            border: 2px solid #444;
+            border-top-color: #6b9fb9;
+            border-radius: 50%;
+            margin-left: 8px;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>Wiki Files</h2>
+            </div>
+            <div class="sidebar-content" id="fileTree">
+                <div class="empty-state" style="padding: 40px 20px;">
+                    <div class="icon">📁</div>
+                    <h3>No Wiki Loaded</h3>
+                    <p>Import a wiki directory to browse files</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main">
+            <!-- Toolbar -->
+            <div class="toolbar">
+                <button class="primary" onclick="showImportModal()">Import</button>
+                <button onclick="swapPanels()">⇄ Swap</button>
+                <div class="toolbar-separator"></div>
+                <button onclick="prevChapter()">‹ Prev</button>
+                <button onclick="nextChapter()">Next ›</button>
+                <div class="toolbar-separator"></div>
+                <div class="path-display" id="pathDisplay">No book loaded</div>
+            </div>
+            
+            <!-- Split View -->
+            <div class="split-view" id="splitView">
+                <!-- Left Panel -->
+                <div class="panel" id="leftPanel">
+                    <div class="panel-header">
+                        <span class="panel-title" id="leftTitle">Book</span>
+                    </div>
+                    <div class="panel-content" id="leftContent">
+                        <div class="empty-state">
+                            <div class="icon">📖</div>
+                            <h3>No Book Loaded</h3>
+                            <p>Import an EPUB file to start reading</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Divider -->
+                <div class="panel-divider" id="divider"></div>
+                
+                <!-- Right Panel -->
+                <div class="panel" id="rightPanel">
+                    <div class="panel-header">
+                        <span class="panel-title" id="rightTitle">Wiki</span>
+                    </div>
+                    <div class="panel-content" id="rightContent">
+                        <div class="empty-state">
+                            <div class="icon">📝</div>
+                            <h3>No Wiki Page</h3>
+                            <p>Select a file from the sidebar to view</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Import Modal -->
+    <div class="modal-overlay" id="importModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Import Reading Materials</h3>
+                <button class="modal-close" onclick="hideImportModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>EPUB Book</label>
+                    <input type="file" id="epubFile" accept=".epub">
+                    <div class="hint">Select an EPUB file to read</div>
+                </div>
+                <div class="form-group">
+                    <label>Wiki Directory</label>
+                    <input type="file" id="wikiDir" webkitdirectory directory multiple>
+                    <div class="hint">Select the wiki folder containing markdown files</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="hideImportModal()">Cancel</button>
+                <button class="primary" onclick="importFiles()">Import</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // State
+        let epubContent = null;
+        let wikiFiles = {};
+        let currentChapter = 0;
+        let chapters = [];
+        let leftPanelIsBook = true;
+        let currentWikiPath = null;
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            setupDividerDrag();
+        });
+        
+        // Modal
+        function showImportModal() {
+            document.getElementById('importModal').classList.add('active');
+        }
+        
+        function hideImportModal() {
+            document.getElementById('importModal').classList.remove('active');
+        }
+        
+        // Import
+        async function importFiles() {
+            const epubInput = document.getElementById('epubFile');
+            const wikiInput = document.getElementById('wikiDir');
+            
+            if (epubInput.files.length > 0) {
+                await loadEpub(epubInput.files[0]);
+            }
+            
+            if (wikiInput.files.length > 0) {
+                loadWiki(wikiInput.files);
+            }
+            
+            hideImportModal();
+        }
+        
+        // Load EPUB
+        async function loadEpub(file) {
+            const JSZip = window.JSZip || (await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js')).default;
+            
+            const zip = await JSZip.loadAsync(file);
+            const content = await parseEpub(zip);
+            epubContent = content;
+            chapters = content.chapters;
+            currentChapter = 0;
+            
+            document.getElementById('pathDisplay').textContent = file.name;
+            renderChapter();
+        }
+        
+        async function parseEpub(zip) {
+            const container = await zip.file('META-INF/container.xml')?.async('text');
+            const rootfile = container?.match(/full-path="([^"]+)"/)?.[1] || 'OEBPS/content.opf';
+            
+            const opf = await zip.file(rootfile)?.async('text');
+            const manifest = {};
+            const spine = [];
+            
+            // Parse manifest
+            const manifestMatches = opf.matchAll(/<item[^>]+href="([^"]+)"[^>]+id="([^"]+)"[^>]*\/>/g);
+            for (const match of manifestMatches) {
+                manifest[match[2]] = match[1];
+            }
+            
+            // Parse spine
+            const spineMatches = opf.matchAll(/<itemref[^>]+idref="([^"]+)"[^>]*\/>/g);
+            for (const match of spineMatches) {
+                spine.push(match[1]);
+            }
+            
+            // Get base path
+            const basePath = rootfile.substring(0, rootfile.lastIndexOf('/') + 1);
+            
+            // Extract chapters
+            const chapters = [];
+            for (const id of spine) {
+                const href = manifest[id];
+                if (href) {
+                    const path = basePath + href;
+                    const content = await zip.file(path)?.async('text');
+                    if (content) {
+                        chapters.push({
+                            title: extractTitle(content) || href,
+                            content: cleanHtml(content)
+                        });
+                    }
+                }
+            }
+            
+            return { chapters, title: extractTitle(opf) || 'Untitled' };
+        }
+        
+        function extractTitle(html) {
+            const match = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+            return match ? match[1].trim() : null;
+        }
+        
+        function cleanHtml(html) {
+            // Remove scripts and styles
+            html = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+            html = html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+            
+            // Extract body content
+            const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+            return bodyMatch ? bodyMatch[1] : html;
+        }
+        
+        function renderChapter() {
+            if (!chapters.length) return;
+            
+            const chapter = chapters[currentChapter];
+            const panel = leftPanelIsBook ? 'leftContent' : 'rightContent';
+            const title = leftPanelIsBook ? 'leftTitle' : 'rightTitle';
+            
+            document.getElementById(title).textContent = chapter.title || `Chapter ${currentChapter + 1}`;
+            document.getElementById(panel).innerHTML = `<div class="epub-content">${chapter.content}</div>`;
+        }
+        
+        function nextChapter() {
+            if (currentChapter < chapters.length - 1) {
+                currentChapter++;
+                renderChapter();
+            }
+        }
+        
+        function prevChapter() {
+            if (currentChapter > 0) {
+                currentChapter--;
+                renderChapter();
+            }
+        }
+        
+        // Load Wiki
+        function loadWiki(files) {
+            wikiFiles = {};
+            
+            for (const file of files) {
+                if (file.name.endsWith('.md')) {
+                    const path = file.webkitRelativePath || file.name;
+                    wikiFiles[path] = file;
+                }
+            }
+            
+            renderFileTree();
+        }
+        
+        function renderFileTree() {
+            const tree = document.getElementById('fileTree');
+            tree.innerHTML = '';
+            
+            const structure = buildTreeStructure(Object.keys(wikiFiles));
+            renderTreeNode(structure, tree, 0);
+        }
+        
+        function buildTreeStructure(paths) {
+            const root = {};
+            
+            for (const path of paths) {
+                const parts = path.split('/');
+                let current = root;
+                
+                for (let i = 0; i < parts.length; i++) {
+                    const part = parts[i];
+                    if (!current[part]) {
+                        current[part] = i === parts.length - 1 ? { __file: true, __path: path } : {};
+                    }
+                    current = current[part];
+                }
+            }
+            
+            return root;
+        }
+        
+        function renderTreeNode(node, container, depth) {
+            const entries = Object.entries(node).sort((a, b) => {
+                const aIsFile = a[1].__file;
+                const bIsFile = b[1].__file;
+                if (aIsFile !== bIsFile) return aIsFile ? 1 : -1;
+                return a[0].localeCompare(b[0]);
+            });
+            
+            for (const [name, value] of entries) {
+                if (name.startsWith('__')) continue;
+                
+                const isFile = value.__file;
+                const item = document.createElement('div');
+                item.className = `tree-item ${isFile ? 'file' : 'directory'}`;
+                item.style.paddingLeft = `${16 + depth * 16}px`;
+                
+                const icon = isFile ? '📄' : '📁';
+                item.innerHTML = `<span class="icon">${icon}</span><span>${name}</span>`;
+                
+                if (isFile) {
+                    item.onclick = () => loadWikiFile(value.__path, item);
+                }
+                
+                container.appendChild(item);
+                
+                if (!isFile) {
+                    renderTreeNode(value, container, depth + 1);
+                }
+            }
+        }
+        
+        async function loadWikiFile(path, element) {
+            // Update active state
+            document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+            
+            currentWikiPath = path;
+            const file = wikiFiles[path];
+            if (!file) return;
+            
+            const content = await file.text();
+            const html = markdownToHtml(content);
+            
+            const panel = leftPanelIsBook ? 'rightContent' : 'leftContent';
+            const title = leftPanelIsBook ? 'rightTitle' : 'leftTitle';
+            
+            document.getElementById(title).textContent = file.name;
+            document.getElementById(panel).innerHTML = `<div class="markdown-body">${html}</div>`;
+            
+            // Setup wiki link clicks
+            setupWikiLinks(document.getElementById(panel));
+        }
+        
+        function markdownToHtml(md) {
+            // Frontmatter
+            md = md.replace(/^---\n[\s\S]*?\n---\n/, '');
+            
+            // Headers
+            md = md.replace(/^###### (.*$)/gim, '<h6>$1</h6>');
+            md = md.replace(/^##### (.*$)/gim, '<h5>$1</h5>');
+            md = md.replace(/^#### (.*$)/gim, '<h4>$1</h4>');
+            md = md.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+            md = md.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+            md = md.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+            
+            // Bold and Italic
+            md = md.replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>');
+            md = md.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            md = md.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            md = md.replace(/__(.*?)__/g, '<strong>$1</strong>');
+            md = md.replace(/_(.*?)_/g, '<em>$1</em>');
+            
+            // Wikilinks [[file.md]] or [[file]]
+            md = md.replace(/\[\[([^\]]+)\]\]/g, (match, p1) => {
+                const path = p1.includes('.md') ? p1 : p1 + '.md';
+                return `<a class="wikilink" data-path="${path}">${p1.replace('.md', '')}</a>`;
+            });
+            
+            // Regular links
+            md = md.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+            
+            // Code blocks
+            md = md.replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+            md = md.replace(/`([^`]+)`/g, '<code>$1</code>');
+            
+            // Blockquotes
+            md = md.replace(/^\> (.*$)/gim, '<blockquote>$1</blockquote>');
+            md = md.replace(/<\/blockquote>\n<blockquote>/g, '\n');
+            
+            // Lists
+            md = md.replace(/^\- (.*$)/gim, '<ul><li>$1</li></ul>');
+            md = md.replace(/^\d+\. (.*$)/gim, '<ol><li>$1</li></ol>');
+            md = md.replace(/<\/ul>\n<ul>/g, '\n');
+            md = md.replace(/<\/ol>\n<ol>/g, '\n');
+            
+            // Horizontal rules
+            md = md.replace(/^\-\-\-+/gim, '<hr>');
+            
+            // Paragraphs
+            md = md.replace(/\n\n/g, '</p><p>');
+            md = md.replace(/^(?!<[a-z])/gim, '<p>');
+            md = md.replace(/$(?!<\/)/gim, '</p>');
+            
+            // Clean up empty paragraphs
+            md = md.replace(/<p><\/p>/g, '');
+            
+            return md;
+        }
+        
+        function setupWikiLinks(container) {
+            container.querySelectorAll('.wikilink').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const path = link.dataset.path;
+                    navigateToWiki(path);
+                });
+            });
+        }
+        
+        function navigateToWiki(path) {
+            // Find the file in wikiFiles
+            const fullPath = Object.keys(wikiFiles).find(p => p.endsWith(path) || p === path);
+            if (!fullPath) return;
+            
+            // Find and click the tree item
+            const treeItems = document.querySelectorAll('.tree-item');
+            for (const item of treeItems) {
+                const text = item.querySelector('span:last-child')?.textContent;
+                if (text && (fullPath.endsWith(text) || text === path.replace('.md', ''))) {
+                    item.click();
+                    item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    break;
+                }
+            }
+        }
+        
+        // Swap panels
+        function swapPanels() {
+            leftPanelIsBook = !leftPanelIsBook;
+            
+            const leftContent = document.getElementById('leftContent').innerHTML;
+            const rightContent = document.getElementById('rightContent').innerHTML;
+            const leftTitle = document.getElementById('leftTitle').textContent;
+            const rightTitle = document.getElementById('rightTitle').textContent;
+            
+            document.getElementById('leftContent').innerHTML = rightContent;
+            document.getElementById('rightContent').innerHTML = leftContent;
+            document.getElementById('leftTitle').textContent = rightTitle;
+            document.getElementById('rightTitle').textContent = leftTitle;
+            
+            // Re-setup wiki links
+            setupWikiLinks(document.getElementById('leftContent'));
+            setupWikiLinks(document.getElementById('rightContent'));
+        }
+        
+        // Divider drag
+        function setupDividerDrag() {
+            const divider = document.getElementById('divider');
+            const splitView = document.getElementById('splitView');
+            const leftPanel = document.getElementById('leftPanel');
+            let isDragging = false;
+            
+            divider.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                document.body.style.cursor = 'col-resize';
+                e.preventDefault();
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                
+                const rect = splitView.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const percent = (x / rect.width) * 100;
+                
+                if (percent > 20 && percent < 80) {
+                    leftPanel.style.flex = `0 0 ${percent}%`;
+                }
+            });
+            
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                document.body.style.cursor = '';
+            });
+        }
+        
+        // Close modal on overlay click
+        document.getElementById('importModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                hideImportModal();
+            }
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+</body>
+</html>
