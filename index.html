@@ -433,6 +433,12 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            min-width: 0;
+        }
+        
+        .wiki-content-area .panel-content {
+            flex: 1;
+            overflow-y: auto;
         }
         
         /* ============================================
@@ -1709,8 +1715,9 @@
                 const percent = (x / rect.width) * 100;
                 
                 if (percent > 25 && percent < 75) {
-                    const bookPanel = document.getElementById('bookPanel');
-                    bookPanel.style.flex = `0 0 ${percent}%`;
+                    // Always resize the first panel (left panel)
+                    const firstPanel = splitView.children[0];
+                    firstPanel.style.flex = `0 0 ${percent}%`;
                 }
             });
             
