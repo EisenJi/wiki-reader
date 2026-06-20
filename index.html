@@ -6,137 +6,217 @@
     <title>Wiki Reader</title>
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <style>
+        /* ============================================
+           CSS VARIABLES - THEME SYSTEM
+           ============================================ */
+        :root {
+            /* Dark theme (default) */
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #252525;
+            --bg-tertiary: #2a2a2a;
+            --bg-panel: #1e1e1e;
+            --text-primary: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --text-muted: #888;
+            --text-faint: #666;
+            --border: #333;
+            --border-light: #3a3a3a;
+            --accent: #6b9fb9;
+            --accent-hover: #7ab8d4;
+            --success: #4a7c59;
+            --danger: #c75b5b;
+            --warning: #d4a373;
+            --link: #6b9fb9;
+            --selection: rgba(107, 159, 185, 0.3);
+            --shadow: rgba(0,0,0,0.3);
+            
+            /* Typography - research-backed defaults */
+            --font-body: Georgia, "Times New Roman", serif;
+            --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-mono: "SF Mono", Monaco, "Cascadia Code", monospace;
+            --font-size-base: 18px;
+            --line-height: 1.7;
+            --max-width: 700px;
+            
+            /* Spacing */
+            --toolbar-height: 40px;
+            --panel-header-height: 36px;
+            --status-height: 22px;
+        }
+        
+        [data-theme="light"] {
+            --bg-primary: #f5f5f0;
+            --bg-secondary: #e8e8e0;
+            --bg-tertiary: #ddd;
+            --bg-panel: #fff;
+            --text-primary: #2a2a2a;
+            --text-secondary: #444;
+            --text-muted: #666;
+            --text-faint: #999;
+            --border: #ccc;
+            --border-light: #ddd;
+            --accent: #2563eb;
+            --accent-hover: #3b82f6;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --warning: #d97706;
+            --link: #2563eb;
+            --selection: rgba(37, 99, 235, 0.2);
+            --shadow: rgba(0,0,0,0.08);
+        }
+        
+        [data-theme="sepia"] {
+            --bg-primary: #f4ecd8;
+            --bg-secondary: #e8dfc8;
+            --bg-tertiary: #ddd5c0;
+            --bg-panel: #fdf6e3;
+            --text-primary: #433422;
+            --text-secondary: #5c4a3a;
+            --text-muted: #7a6b5a;
+            --text-faint: #9a8b7a;
+            --border: #d4c9b0;
+            --border-light: #ddd5c0;
+            --accent: #8b6914;
+            --accent-hover: #a07d2a;
+            --success: #5a7c4a;
+            --danger: #a05050;
+            --warning: #b89040;
+            --link: #8b6914;
+            --selection: rgba(139, 105, 20, 0.2);
+            --shadow: rgba(67, 52, 34, 0.1);
+        }
+        
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: #1a1a1a;
-            color: #e0e0e0;
+            font-family: var(--font-ui);
+            background: var(--bg-primary);
+            color: var(--text-primary);
             height: 100vh;
             overflow: hidden;
+            transition: background 0.3s, color 0.3s;
         }
         
+        /* ============================================
+           APP LAYOUT
+           ============================================ */
         .app {
             display: flex;
+            flex-direction: column;
             height: 100vh;
         }
         
-        /* Sidebar */
-        .sidebar {
-            width: 280px;
-            min-width: 200px;
-            max-width: 400px;
-            background: #252525;
-            border-right: 1px solid #333;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            resize: horizontal;
-        }
-        
-        .sidebar-header {
-            padding: 10px 14px;
-            border-bottom: 1px solid #333;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        
-        .sidebar-header h2 {
-            font-size: 13px;
-            font-weight: 600;
-            color: #888;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .sidebar-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 6px 0;
-        }
-        
-        .tree-item {
-            padding: 5px 14px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            transition: background 0.15s;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            user-select: none;
-        }
-        
-        .tree-item:hover { background: #2a2a2a; }
-        .tree-item.active { background: #3a3a3a; color: #fff; }
-        .tree-item.directory { font-weight: 500; color: #aaa; }
-        .tree-item.file { color: #ccc; padding-left: 28px; }
-        .tree-item .icon { font-size: 12px; flex-shrink: 0; }
-        .tree-item.directory .icon { color: #d4a373; }
-        .tree-item.file .icon { color: #6b9fb9; }
-        
-        /* Main */
-        .main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            min-width: 0;
-        }
-        
-        /* Toolbar */
+        /* ============================================
+           MINIMAL TOOLBAR
+           ============================================ */
         .toolbar {
-            height: 42px;
-            background: #252525;
-            border-bottom: 1px solid #333;
+            height: var(--toolbar-height);
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
             padding: 0 12px;
-            gap: 8px;
+            gap: 6px;
             flex-shrink: 0;
+            justify-content: space-between;
+        }
+        
+        .toolbar-left, .toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
         
         .toolbar button {
-            background: #3a3a3a;
-            border: 1px solid #444;
-            color: #ccc;
-            padding: 5px 12px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 4px 10px;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 13px;
             transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
         
-        .toolbar button:hover { background: #444; }
-        .toolbar button.primary { background: #4a7c59; border-color: #5a8c69; color: #fff; }
-        .toolbar button.primary:hover { background: #5a8c69; }
-        .toolbar button:disabled { opacity: 0.4; cursor: not-allowed; }
+        .toolbar button:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
         
-        .toolbar-separator {
+        .toolbar button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        
+        .toolbar .separator {
             width: 1px;
-            height: 18px;
-            background: #444;
+            height: 16px;
+            background: var(--border);
             margin: 0 4px;
         }
         
-        .toolbar .path-display {
-            flex: 1;
-            font-size: 12px;
-            color: #888;
+        .toolbar .book-title {
+            font-size: 13px;
+            color: var(--text-muted);
+            max-width: 300px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            padding: 0 8px;
         }
         
-        /* Split View */
+        /* Font size controls */
+        .font-size-control {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+        
+        .font-size-control button {
+            font-family: var(--font-ui);
+            font-weight: 600;
+            padding: 2px 8px;
+            min-width: 28px;
+            justify-content: center;
+        }
+        
+        .font-size-control .size-label {
+            font-size: 11px;
+            color: var(--text-faint);
+            min-width: 28px;
+            text-align: center;
+        }
+        
+        /* Theme toggle */
+        .theme-toggle {
+            display: flex;
+            gap: 2px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            padding: 2px;
+        }
+        
+        .theme-toggle button {
+            padding: 2px 8px;
+            font-size: 12px;
+            border-radius: 3px;
+        }
+        
+        .theme-toggle button.active {
+            background: var(--accent);
+            color: #fff;
+        }
+        
+        /* ============================================
+           SPLIT VIEW
+           ============================================ */
         .split-view {
             flex: 1;
             display: flex;
             overflow: hidden;
+            min-height: 0;
         }
         
         .panel {
@@ -144,245 +224,521 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            background: #1e1e1e;
-            min-width: 200px;
+            background: var(--bg-panel);
+            min-width: 280px;
+            position: relative;
         }
         
+        /* Panel header */
         .panel-header {
-            height: 34px;
-            background: #2a2a2a;
-            border-bottom: 1px solid #333;
+            height: var(--panel-header-height);
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
-            padding: 0 12px;
-            font-size: 12px;
-            color: #888;
+            padding: 0 10px;
             gap: 8px;
             flex-shrink: 0;
+            justify-content: space-between;
+        }
+        
+        .panel-header-left {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex: 1;
+            min-width: 0;
         }
         
         .panel-header .panel-title {
-            flex: 1;
+            font-size: 12px;
+            color: var(--text-muted);
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            font-weight: 500;
         }
         
-        .panel-header .nav-buttons {
-            display: flex;
-            gap: 4px;
-        }
-        
-        .panel-header .nav-buttons button {
-            background: #3a3a3a;
-            border: 1px solid #444;
-            color: #aaa;
-            padding: 2px 8px;
+        .panel-header .panel-type {
+            font-size: 10px;
+            color: var(--text-faint);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: var(--bg-tertiary);
+            padding: 1px 6px;
             border-radius: 3px;
-            cursor: pointer;
-            font-size: 11px;
-        }
-        
-        .panel-header .nav-buttons button:hover { background: #444; color: #fff; }
-        .panel-header .nav-buttons button:disabled { opacity: 0.3; cursor: not-allowed; }
-        
-        .panel-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px 28px;
-            line-height: 1.7;
-        }
-        
-        .panel-divider {
-            width: 4px;
-            background: #333;
-            cursor: col-resize;
-            position: relative;
             flex-shrink: 0;
         }
         
-        .panel-divider:hover { background: #444; }
-        
-        /* Markdown */
-        .markdown-body {
-            color: #d0d0d0;
-            font-size: 14px;
+        .panel-header-right {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
         }
         
-        .markdown-body h1 {
-            font-size: 22px;
+        .panel-header-right button {
+            background: transparent;
+            border: none;
+            color: var(--text-faint);
+            padding: 2px 6px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.15s;
+        }
+        
+        .panel-header-right button:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+        
+        .panel-header-right button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        
+        /* Panel content */
+        .panel-content {
+            flex: 1;
+            overflow-y: auto;
+            position: relative;
+        }
+        
+        /* Divider */
+        .panel-divider {
+            width: 3px;
+            background: var(--border);
+            cursor: col-resize;
+            position: relative;
+            flex-shrink: 0;
+            transition: background 0.15s;
+        }
+        
+        .panel-divider:hover {
+            background: var(--accent);
+        }
+        
+        .panel-divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 1px;
+            height: 20px;
+            background: var(--text-faint);
+            opacity: 0.5;
+        }
+        
+        /* ============================================
+           WIKI PANEL - INTEGRATED FILE TREE
+           ============================================ */
+        .wiki-panel {
+            display: flex;
+            flex-direction: row;
+            overflow: hidden;
+        }
+        
+        .wiki-sidebar {
+            width: 220px;
+            min-width: 160px;
+            max-width: 320px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            resize: horizontal;
+            flex-shrink: 0;
+        }
+        
+        .wiki-sidebar-header {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .wiki-sidebar-header h3 {
+            font-size: 11px;
             font-weight: 600;
-            margin-bottom: 14px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #333;
+            color: var(--text-faint);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .wiki-sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 4px 0;
+        }
+        
+        /* Tree items */
+        .tree-item {
+            padding: 4px 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            transition: background 0.1s;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            user-select: none;
+            color: var(--text-secondary);
+        }
+        
+        .tree-item:hover {
+            background: var(--bg-tertiary);
+        }
+        
+        .tree-item.active {
+            background: var(--accent);
             color: #fff;
         }
         
-        .markdown-body h2 {
-            font-size: 17px;
+        .tree-item.active .icon {
+            color: #fff;
+        }
+        
+        .tree-item.directory {
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+        
+        .tree-item.file {
+            padding-left: 24px;
+        }
+        
+        .tree-item .icon {
+            font-size: 10px;
+            flex-shrink: 0;
+            color: var(--text-faint);
+        }
+        
+        .tree-item.directory .icon {
+            color: var(--warning);
+        }
+        
+        .tree-item.file .icon {
+            color: var(--accent);
+        }
+        
+        /* Wiki content area */
+        .wiki-content-area {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* ============================================
+           EPUB READING - RESEARCH-BACKED TYPOGRAPHY
+           ============================================ */
+        .epub-container {
+            max-width: var(--max-width);
+            margin: 0 auto;
+            padding: 32px 40px;
+            font-family: var(--font-body);
+            font-size: var(--font-size-base);
+            line-height: var(--line-height);
+            color: var(--text-primary);
+        }
+        
+        .epub-container h1 {
+            font-family: var(--font-ui);
+            font-size: 1.8em;
+            font-weight: 700;
+            margin: 0 0 0.8em;
+            line-height: 1.3;
+            color: var(--text-primary);
+            letter-spacing: -0.01em;
+        }
+        
+        .epub-container h2 {
+            font-family: var(--font-ui);
+            font-size: 1.4em;
             font-weight: 600;
-            margin-top: 22px;
-            margin-bottom: 10px;
-            color: #e8e8e8;
+            margin: 1.5em 0 0.6em;
+            line-height: 1.3;
+            color: var(--text-primary);
+        }
+        
+        .epub-container h3 {
+            font-family: var(--font-ui);
+            font-size: 1.15em;
+            font-weight: 600;
+            margin: 1.3em 0 0.5em;
+            color: var(--text-secondary);
+        }
+        
+        .epub-container p {
+            margin: 0 0 1em;
+            text-align: justify;
+            hyphens: auto;
+            word-break: normal;
+            overflow-wrap: break-word;
+        }
+        
+        .epub-container blockquote {
+            margin: 1.2em 0;
+            padding: 0.5em 0 0.5em 1.2em;
+            border-left: 3px solid var(--accent);
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+        
+        .epub-container img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 1em auto;
+        }
+        
+        .epub-container a {
+            color: var(--link);
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+        
+        .epub-container sup, .epub-container sub {
+            font-size: 0.75em;
+            line-height: 0;
+        }
+        
+        .epub-container hr {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 2em 0;
+        }
+        
+        /* ============================================
+           MARKDOWN RENDERING
+           ============================================ */
+        .markdown-body {
+            max-width: var(--max-width);
+            margin: 0 auto;
+            padding: 24px 32px;
+            font-family: var(--font-ui);
+            font-size: 15px;
+            line-height: 1.65;
+            color: var(--text-primary);
+        }
+        
+        .markdown-body h1 {
+            font-size: 1.6em;
+            font-weight: 700;
+            margin: 0 0 0.6em;
+            padding-bottom: 0.4em;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+        
+        .markdown-body h2 {
+            font-size: 1.25em;
+            font-weight: 600;
+            margin: 1.4em 0 0.5em;
+            color: var(--text-primary);
         }
         
         .markdown-body h3 {
-            font-size: 14px;
+            font-size: 1.1em;
             font-weight: 600;
-            margin-top: 18px;
-            margin-bottom: 8px;
-            color: #ddd;
+            margin: 1.2em 0 0.4em;
+            color: var(--text-secondary);
         }
         
-        .markdown-body p { margin-bottom: 10px; }
+        .markdown-body p {
+            margin: 0 0 0.8em;
+        }
         
         .markdown-body a {
-            color: #6b9fb9;
+            color: var(--link);
             text-decoration: none;
         }
         
-        .markdown-body a:hover { text-decoration: underline; }
-        
-        .markdown-body ul, .markdown-body ol {
-            margin-bottom: 10px;
-            padding-left: 22px;
+        .markdown-body a:hover {
+            text-decoration: underline;
         }
         
-        .markdown-body li { margin-bottom: 3px; }
+        .markdown-body ul, .markdown-body ol {
+            margin: 0 0 0.8em;
+            padding-left: 1.8em;
+        }
+        
+        .markdown-body li {
+            margin: 0 0 0.2em;
+        }
         
         .markdown-body blockquote {
-            border-left: 3px solid #4a7c59;
-            margin: 10px 0;
-            padding-left: 14px;
-            color: #aaa;
+            border-left: 3px solid var(--accent);
+            margin: 1em 0;
+            padding: 0.3em 0 0.3em 1em;
+            color: var(--text-secondary);
             font-style: italic;
         }
         
         .markdown-body code {
-            background: #2a2a2a;
-            padding: 2px 5px;
+            background: var(--bg-tertiary);
+            padding: 1px 4px;
             border-radius: 3px;
-            font-family: "SF Mono", Monaco, monospace;
-            font-size: 12px;
-            color: #c9a86c;
+            font-family: var(--font-mono);
+            font-size: 0.85em;
+            color: var(--accent);
         }
         
         .markdown-body pre {
-            background: #252525;
-            padding: 14px;
+            background: var(--bg-secondary);
+            padding: 12px 16px;
             border-radius: 6px;
             overflow-x: auto;
-            margin: 10px 0;
+            margin: 0.8em 0;
+            border: 1px solid var(--border);
         }
         
-        .markdown-body pre code { background: none; padding: 0; }
+        .markdown-body pre code {
+            background: none;
+            padding: 0;
+            color: var(--text-primary);
+        }
         
         .markdown-body hr {
             border: none;
-            border-top: 1px solid #333;
-            margin: 18px 0;
+            border-top: 1px solid var(--border);
+            margin: 1.5em 0;
         }
         
         .markdown-body table {
             width: 100%;
             border-collapse: collapse;
-            margin: 10px 0;
-            font-size: 13px;
+            margin: 0.8em 0;
+            font-size: 0.9em;
         }
         
         .markdown-body th, .markdown-body td {
-            border: 1px solid #333;
+            border: 1px solid var(--border);
             padding: 6px 10px;
             text-align: left;
         }
         
-        .markdown-body th { background: #2a2a2a; font-weight: 600; }
-        .markdown-body tr:nth-child(even) { background: #252525; }
+        .markdown-body th {
+            background: var(--bg-secondary);
+            font-weight: 600;
+        }
+        
+        .markdown-body tr:nth-child(even) {
+            background: var(--bg-secondary);
+            opacity: 0.5;
+        }
         
         .markdown-body .wikilink {
-            color: #6b9fb9;
+            color: var(--link);
             cursor: pointer;
+            border-bottom: 1px dashed var(--link);
         }
         
-        .markdown-body .wikilink:hover { text-decoration: underline; }
-        
-        /* EPUB */
-        .epub-content {
-            color: #d0d0d0;
-            font-size: 15px;
-            line-height: 1.8;
-            max-width: 680px;
-            margin: 0 auto;
+        .markdown-body .wikilink:hover {
+            background: var(--selection);
+            text-decoration: none;
         }
         
-        .epub-content h1, .epub-content h2, .epub-content h3 {
-            color: #fff;
-            margin-top: 22px;
-            margin-bottom: 14px;
+        /* YAML frontmatter styling */
+        .markdown-body .frontmatter {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 8px 12px;
+            margin: 0 0 1em;
+            font-size: 0.85em;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
         }
         
-        .epub-content p {
-            margin-bottom: 14px;
-            text-align: justify;
+        .markdown-body .frontmatter code {
+            background: none;
+            color: var(--text-faint);
         }
         
-        .epub-content img { max-width: 100%; height: auto; }
-        
-        /* Empty State */
+        /* ============================================
+           EMPTY STATES
+           ============================================ */
         .empty-state {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             height: 100%;
-            color: #666;
+            color: var(--text-faint);
             text-align: center;
             padding: 40px;
         }
         
         .empty-state .icon {
-            font-size: 44px;
-            margin-bottom: 14px;
-            opacity: 0.3;
+            font-size: 40px;
+            margin-bottom: 12px;
+            opacity: 0.4;
         }
         
         .empty-state h3 {
             font-size: 15px;
             font-weight: 500;
             margin-bottom: 6px;
-            color: #888;
+            color: var(--text-muted);
         }
         
         .empty-state p {
             font-size: 12px;
-            color: #666;
-            max-width: 280px;
+            color: var(--text-faint);
+            max-width: 260px;
+            line-height: 1.5;
         }
         
-        /* Modal */
+        .empty-state button {
+            margin-top: 16px;
+            padding: 8px 20px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        
+        .empty-state button:hover {
+            background: var(--accent-hover);
+        }
+        
+        /* ============================================
+           IMPORT MODAL
+           ============================================ */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.6);
             display: none;
             align-items: center;
             justify-content: center;
             z-index: 1000;
+            backdrop-filter: blur(4px);
         }
         
         .modal-overlay.active { display: flex; }
         
         .modal {
-            background: #2a2a2a;
+            background: var(--bg-panel);
             border-radius: 8px;
-            width: 480px;
+            width: 460px;
             max-width: 90vw;
-            border: 1px solid #444;
+            border: 1px solid var(--border);
+            box-shadow: 0 8px 32px var(--shadow);
         }
         
         .modal-header {
             padding: 14px 18px;
-            border-bottom: 1px solid #333;
+            border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -391,13 +747,13 @@
         .modal-header h3 {
             font-size: 15px;
             font-weight: 600;
-            color: #fff;
+            color: var(--text-primary);
         }
         
         .modal-close {
             background: none;
             border: none;
-            color: #888;
+            color: var(--text-faint);
             font-size: 20px;
             cursor: pointer;
             padding: 0;
@@ -407,9 +763,13 @@
             align-items: center;
             justify-content: center;
             border-radius: 4px;
+            transition: all 0.15s;
         }
         
-        .modal-close:hover { background: #3a3a3a; color: #fff; }
+        .modal-close:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
         
         .modal-body { padding: 18px; }
         
@@ -419,7 +779,7 @@
             display: block;
             font-size: 11px;
             font-weight: 600;
-            color: #aaa;
+            color: var(--text-muted);
             margin-bottom: 5px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -429,17 +789,17 @@
         .form-group input[type="text"] {
             width: 100%;
             padding: 8px 10px;
-            background: #1e1e1e;
-            border: 1px solid #444;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
             border-radius: 4px;
-            color: #ccc;
+            color: var(--text-primary);
             font-size: 13px;
         }
         
         .form-group input[type="file"]::file-selector-button {
-            background: #3a3a3a;
-            border: 1px solid #444;
-            color: #ccc;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
             padding: 3px 10px;
             border-radius: 3px;
             cursor: pointer;
@@ -448,13 +808,13 @@
         
         .form-group .hint {
             font-size: 11px;
-            color: #666;
+            color: var(--text-faint);
             margin-top: 3px;
         }
         
         .modal-footer {
             padding: 14px 18px;
-            border-top: 1px solid #333;
+            border-top: 1px solid var(--border);
             display: flex;
             justify-content: flex-end;
             gap: 8px;
@@ -465,147 +825,214 @@
             border-radius: 4px;
             font-size: 13px;
             cursor: pointer;
-            border: 1px solid #444;
-            background: #3a3a3a;
-            color: #ccc;
+            border: 1px solid var(--border);
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            transition: all 0.15s;
+        }
+        
+        .modal-footer button:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
         }
         
         .modal-footer button.primary {
-            background: #4a7c59;
-            border-color: #5a8c69;
+            background: var(--accent);
+            border-color: var(--accent);
             color: #fff;
         }
         
-        /* Scrollbar */
+        .modal-footer button.primary:hover {
+            background: var(--accent-hover);
+        }
+        
+        /* ============================================
+           STATUS BAR
+           ============================================ */
+        .status-bar {
+            height: var(--status-height);
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            font-size: 11px;
+            color: var(--text-faint);
+            gap: 12px;
+            flex-shrink: 0;
+        }
+        
+        .status-bar .status-success { color: var(--success); }
+        .status-bar .status-error { color: var(--danger); }
+        .status-bar .status-info { color: var(--accent); }
+        .status-bar .status-warning { color: var(--warning); }
+        
+        /* ============================================
+           SCROLLBAR
+           ============================================ */
         ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
+            width: 5px;
+            height: 5px;
         }
         
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #555; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
         
-        /* Loading */
+        /* ============================================
+           LOADING
+           ============================================ */
         .loading {
             display: flex;
             align-items: center;
             justify-content: center;
             height: 100%;
-            color: #666;
+            color: var(--text-faint);
             font-size: 13px;
+            gap: 8px;
         }
         
         .loading::after {
             content: '';
             width: 14px;
             height: 14px;
-            border: 2px solid #444;
-            border-top-color: #6b9fb9;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
             border-radius: 50%;
-            margin-left: 8px;
             animation: spin 0.8s linear infinite;
         }
         
         @keyframes spin { to { transform: rotate(360deg); } }
         
-        /* Status */
-        .status-bar {
-            height: 24px;
-            background: #252525;
-            border-top: 1px solid #333;
+        /* ============================================
+           CHAPTER PROGRESS
+           ============================================ */
+        .chapter-progress {
             display: flex;
             align-items: center;
-            padding: 0 12px;
+            gap: 6px;
             font-size: 11px;
-            color: #666;
-            gap: 12px;
+            color: var(--text-faint);
         }
         
-        .status-bar .status-item {
-            display: flex;
-            align-items: center;
-            gap: 4px;
+        .chapter-progress .progress-bar {
+            width: 60px;
+            height: 3px;
+            background: var(--border);
+            border-radius: 2px;
+            overflow: hidden;
         }
         
-        .status-bar .status-success { color: #4a7c59; }
-        .status-bar .status-error { color: #c75b5b; }
-        .status-bar .status-info { color: #6b9fb9; }
+        .chapter-progress .progress-fill {
+            height: 100%;
+            background: var(--accent);
+            transition: width 0.3s;
+        }
+        
+        /* ============================================
+           RESPONSIVE
+           ============================================ */
+        @media (max-width: 768px) {
+            .wiki-sidebar { display: none; }
+            .panel-divider { display: none; }
+            .split-view { flex-direction: column; }
+            .panel { min-height: 200px; }
+        }
     </style>
 </head>
-<body>
+<body data-theme="dark">
     <div class="app">
-        <!-- Sidebar -->
-        <div class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <h2>Wiki Files</h2>
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <div class="toolbar-left">
+                <button onclick="showImportModal()" title="Import EPUB and Wiki">📥 Import</button>
+                <div class="separator"></div>
+                <button onclick="prevChapter()" id="btnPrev" disabled title="Previous chapter">‹</button>
+                <div class="chapter-progress" id="chapterProgress" style="display:none;">
+                    <span id="chapterNum">1/1</span>
+                    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+                </div>
+                <button onclick="nextChapter()" id="btnNext" disabled title="Next chapter">›</button>
+                <div class="separator"></div>
+                <span class="book-title" id="bookTitle">No book loaded</span>
             </div>
-            <div class="sidebar-content" id="fileTree">
-                <div class="empty-state" style="padding: 40px 20px;">
-                    <div class="icon">📁</div>
-                    <h3>No Wiki Loaded</h3>
-                    <p>Import a wiki directory to browse files</p>
+            
+            <div class="toolbar-right">
+                <div class="font-size-control">
+                    <button onclick="changeFontSize(-1)" title="Decrease font size">A−</button>
+                    <span class="size-label" id="fontSizeLabel">18px</span>
+                    <button onclick="changeFontSize(1)" title="Increase font size">A+</button>
+                </div>
+                <div class="separator"></div>
+                <div class="theme-toggle">
+                    <button onclick="setTheme('dark')" id="themeDark" class="active" title="Dark theme">🌙</button>
+                    <button onclick="setTheme('light')" id="themeLight" title="Light theme">☀️</button>
+                    <button onclick="setTheme('sepia')" id="themeSepia" title="Sepia theme">📜</button>
                 </div>
             </div>
         </div>
         
-        <!-- Main Content -->
-        <div class="main">
-            <!-- Toolbar -->
-            <div class="toolbar">
-                <button class="primary" onclick="showImportModal()">Import</button>
-                <button onclick="swapPanels()">⇄ Swap</button>
-                <div class="toolbar-separator"></div>
-                <button onclick="prevChapter()" id="btnPrev" disabled>‹ Prev</button>
-                <button onclick="nextChapter()" id="btnNext" disabled>Next ›</button>
-                <div class="toolbar-separator"></div>
-                <div class="path-display" id="pathDisplay">No book loaded</div>
+        <!-- Split View -->
+        <div class="split-view" id="splitView">
+            <!-- Book Panel -->
+            <div class="panel" id="bookPanel">
+                <div class="panel-header">
+                    <div class="panel-header-left">
+                        <span class="panel-type">Book</span>
+                        <span class="panel-title" id="bookPanelTitle">No book loaded</span>
+                    </div>
+                </div>
+                <div class="panel-content" id="bookContent">
+                    <div class="empty-state">
+                        <div class="icon">📖</div>
+                        <h3>Welcome to Wiki Reader</h3>
+                        <p>Import an EPUB book and a wiki directory to start reading with your notes side by side.</p>
+                        <button onclick="showImportModal()">Import Now</button>
+                    </div>
+                </div>
             </div>
             
-            <!-- Split View -->
-            <div class="split-view" id="splitView">
-                <!-- Left Panel -->
-                <div class="panel" id="leftPanel">
-                    <div class="panel-header">
-                        <span class="panel-title" id="leftTitle">Book</span>
-                        <div class="nav-buttons" id="leftNav" style="display:none;">
-                            <button onclick="wikiGoBack('left')" id="leftBack" disabled>← Back</button>
-                        </div>
+            <!-- Divider -->
+            <div class="panel-divider" id="divider"></div>
+            
+            <!-- Wiki Panel -->
+            <div class="panel wiki-panel" id="wikiPanel">
+                <div class="panel-header">
+                    <div class="panel-header-left">
+                        <span class="panel-type">Wiki</span>
+                        <span class="panel-title" id="wikiPanelTitle">No page selected</span>
                     </div>
-                    <div class="panel-content" id="leftContent">
-                        <div class="empty-state">
-                            <div class="icon">📖</div>
-                            <h3>No Book Loaded</h3>
-                            <p>Import an EPUB file to start reading</p>
+                    <div class="panel-header-right">
+                        <button onclick="wikiGoBack()" id="wikiBackBtn" disabled title="Go back">← Back</button>
+                        <button onclick="swapPanels()" title="Swap panels">⇄</button>
+                    </div>
+                </div>
+                <div class="wiki-sidebar" id="wikiSidebar">
+                    <div class="wiki-sidebar-header">
+                        <h3>Files</h3>
+                    </div>
+                    <div class="wiki-sidebar-content" id="wikiFileTree">
+                        <div class="empty-state" style="padding: 30px 16px;">
+                            <div class="icon" style="font-size: 28px;">📁</div>
+                            <p style="font-size: 11px;">Import a wiki directory to browse files</p>
                         </div>
                     </div>
                 </div>
-                
-                <!-- Divider -->
-                <div class="panel-divider" id="divider"></div>
-                
-                <!-- Right Panel -->
-                <div class="panel" id="rightPanel">
-                    <div class="panel-header">
-                        <span class="panel-title" id="rightTitle">Wiki</span>
-                        <div class="nav-buttons" id="rightNav" style="display:none;">
-                            <button onclick="wikiGoBack('right')" id="rightBack" disabled>← Back</button>
-                        </div>
-                    </div>
-                    <div class="panel-content" id="rightContent">
+                <div class="wiki-content-area" id="wikiContentArea">
+                    <div class="panel-content" id="wikiContent">
                         <div class="empty-state">
                             <div class="icon">📝</div>
                             <h3>No Wiki Page</h3>
-                            <p>Select a file from the sidebar to view</p>
+                            <p>Select a file from the sidebar to view your notes.</p>
                         </div>
                     </div>
                 </div>
             </div>
-            
-            <!-- Status Bar -->
-            <div class="status-bar" id="statusBar">
-                <span class="status-item" id="statusText">Ready</span>
-            </div>
+        </div>
+        
+        <!-- Status Bar -->
+        <div class="status-bar" id="statusBar">
+            <span id="statusText">Ready</span>
         </div>
     </div>
     
@@ -636,34 +1063,168 @@
     </div>
     
     <script>
-        // State
-        let epubContent = null;
-        let wikiFiles = {};
-        let currentChapter = 0;
+        // ============================================
+        // STATE
+        // ============================================
         let chapters = [];
-        let leftPanelIsBook = true;
+        let currentChapter = 0;
+        let wikiFiles = {};
         let currentWikiPath = null;
+        let wikiHistory = [];
+        let fontSize = 18;
+        let currentTheme = 'dark';
         
-        // Navigation history for each panel
-        const wikiHistory = {
-            left: [],
-            right: []
-        };
+        // ============================================
+        // INDEXEDDB - PERSISTENCE
+        // ============================================
+        const DB_NAME = 'WikiReaderDB';
+        const DB_VERSION = 1;
+        let db = null;
         
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => { db = request.result; resolve(db); };
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains('epub')) {
+                        db.createObjectStore('epub');
+                    }
+                    if (!db.objectStoreNames.contains('wiki')) {
+                        db.createObjectStore('wiki');
+                    }
+                    if (!db.objectStoreNames.contains('settings')) {
+                        db.createObjectStore('settings');
+                    }
+                };
+            });
+        }
+        
+        async function saveToDB(store, key, data) {
+            if (!db) await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(store, 'readwrite');
+                const objectStore = tx.objectStore(store);
+                const request = objectStore.put(data, key);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+        
+        async function loadFromDB(store, key) {
+            if (!db) await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(store, 'readonly');
+                const objectStore = tx.objectStore(store);
+                const request = objectStore.get(key);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+        
+        async function clearDB(store) {
+            if (!db) await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(store, 'readwrite');
+                const objectStore = tx.objectStore(store);
+                const request = objectStore.clear();
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+        
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        document.addEventListener('DOMContentLoaded', async () => {
+            await openDB();
             setupDividerDrag();
-            updateStatus('Ready');
+            loadSettings();
+            await restoreSession();
         });
         
-        // Status
+        function loadSettings() {
+            const savedTheme = localStorage.getItem('wikiReaderTheme');
+            if (savedTheme) setTheme(savedTheme, false);
+            
+            const savedFontSize = localStorage.getItem('wikiReaderFontSize');
+            if (savedFontSize) {
+                fontSize = parseInt(savedFontSize);
+                updateFontSize();
+            }
+        }
+        
+        async function restoreSession() {
+            // Restore EPUB
+            const savedChapters = await loadFromDB('epub', 'chapters');
+            const savedChapter = await loadFromDB('epub', 'currentChapter');
+            const savedBookName = await loadFromDB('epub', 'bookName');
+            
+            if (savedChapters && savedChapters.length > 0) {
+                chapters = savedChapters;
+                currentChapter = savedChapter || 0;
+                document.getElementById('bookTitle').textContent = savedBookName || 'Restored book';
+                document.getElementById('bookPanelTitle').textContent = savedBookName || 'Book';
+                document.getElementById('btnPrev').disabled = currentChapter <= 0;
+                document.getElementById('btnNext').disabled = currentChapter >= chapters.length - 1;
+                updateChapterProgress();
+                renderChapter();
+                updateStatus('Book restored from previous session', 'success');
+            }
+            
+            // Restore Wiki
+            const savedWikiFiles = await loadFromDB('wiki', 'files');
+            if (savedWikiFiles) {
+                wikiFiles = savedWikiFiles;
+                renderWikiTree();
+                updateStatus('Wiki restored from previous session', 'success');
+            }
+        }
+        
+        // ============================================
+        // THEME
+        // ============================================
+        function setTheme(theme, save = true) {
+            currentTheme = theme;
+            document.body.setAttribute('data-theme', theme);
+            
+            document.querySelectorAll('.theme-toggle button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById('theme' + theme.charAt(0).toUpperCase() + theme.slice(1)).classList.add('active');
+            
+            if (save) {
+                localStorage.setItem('wikiReaderTheme', theme);
+            }
+        }
+        
+        // ============================================
+        // FONT SIZE
+        // ============================================
+        function changeFontSize(delta) {
+            fontSize = Math.max(12, Math.min(28, fontSize + delta));
+            updateFontSize();
+            localStorage.setItem('wikiReaderFontSize', fontSize);
+        }
+        
+        function updateFontSize() {
+            document.documentElement.style.setProperty('--font-size-base', fontSize + 'px');
+            document.getElementById('fontSizeLabel').textContent = fontSize + 'px';
+        }
+        
+        // ============================================
+        // STATUS
+        // ============================================
         function updateStatus(text, type = 'info') {
             const el = document.getElementById('statusText');
             el.textContent = text;
-            el.className = 'status-item status-' + type;
+            el.className = 'status-' + type;
         }
         
-        // Modal
+        // ============================================
+        // MODAL
+        // ============================================
         function showImportModal() {
             document.getElementById('importModal').classList.add('active');
         }
@@ -672,55 +1233,56 @@
             document.getElementById('importModal').classList.remove('active');
         }
         
-        // Import
+        // ============================================
+        // IMPORT
+        // ============================================
         async function importFiles() {
             const epubInput = document.getElementById('epubFile');
             const wikiInput = document.getElementById('wikiDir');
             
-            let hasError = false;
+            let imported = false;
             
             if (epubInput.files.length > 0) {
                 updateStatus('Loading EPUB...');
                 try {
                     await loadEpub(epubInput.files[0]);
-                    updateStatus('EPUB loaded: ' + chapters.length + ' chapters', 'success');
+                    imported = true;
                 } catch (err) {
                     console.error('EPUB load error:', err);
                     updateStatus('EPUB error: ' + err.message, 'error');
-                    hasError = true;
                 }
             }
             
             if (wikiInput.files.length > 0) {
                 try {
-                    loadWiki(wikiInput.files);
-                    updateStatus('Wiki loaded: ' + Object.keys(wikiFiles).length + ' files', 'success');
+                    await loadWiki(wikiInput.files);
+                    imported = true;
                 } catch (err) {
                     console.error('Wiki load error:', err);
                     updateStatus('Wiki error: ' + err.message, 'error');
-                    hasError = true;
                 }
             }
             
-            if (!hasError) {
+            if (imported) {
                 setTimeout(() => updateStatus('Ready'), 3000);
             }
             
             hideImportModal();
         }
         
-        // Load EPUB
+        // ============================================
+        // EPUB LOADING
+        // ============================================
         async function loadEpub(file) {
             if (typeof JSZip === 'undefined') {
-                throw new Error('JSZip not loaded. Please check internet connection for CDN.');
+                throw new Error('JSZip not loaded. Check internet connection.');
             }
             
             const zip = await JSZip.loadAsync(file);
             
-            // Find container.xml
             const containerFile = zip.file('META-INF/container.xml');
             if (!containerFile) {
-                throw new Error('Invalid EPUB: META-INF/container.xml not found');
+                throw new Error('Invalid EPUB: container.xml not found');
             }
             
             const container = await containerFile.async('text');
@@ -736,19 +1298,16 @@
             const manifest = {};
             const spine = [];
             
-            // Parse manifest - handle both self-closing and regular tags
+            // Parse manifest
             const manifestRegex = /<item[^>]+id=["']([^"']+)["'][^>]*href=["']([^"']+)["'][^>]*\/?>/g;
             let m;
             while ((m = manifestRegex.exec(opf)) !== null) {
                 manifest[m[1]] = m[2];
             }
             
-            // Also try alternate attribute order
             const manifestRegex2 = /<item[^>]+href=["']([^"']+)["'][^>]*id=["']([^"']+)["'][^>]*\/?>/g;
             while ((m = manifestRegex2.exec(opf)) !== null) {
-                if (!manifest[m[2]]) {
-                    manifest[m[2]] = m[1];
-                }
+                if (!manifest[m[2]]) manifest[m[2]] = m[1];
             }
             
             // Parse spine
@@ -761,40 +1320,24 @@
                 throw new Error('No chapters found in EPUB spine');
             }
             
-            // Get base path
             const lastSlash = rootfile.lastIndexOf('/');
             const basePath = lastSlash >= 0 ? rootfile.substring(0, lastSlash + 1) : '';
             
-            // Extract chapters
             const extractedChapters = [];
             for (const id of spine) {
                 const href = manifest[id];
-                if (!href) {
-                    console.warn('No manifest entry for spine id:', id);
-                    continue;
-                }
+                if (!href) continue;
                 
                 const path = basePath + href;
-                const contentFile = zip.file(path);
-                if (!contentFile) {
-                    // Try without basePath
-                    const altFile = zip.file(href);
-                    if (!altFile) {
-                        console.warn('Chapter file not found:', path);
-                        continue;
-                    }
-                    const content = await altFile.async('text');
-                    extractedChapters.push({
-                        title: extractTitle(content) || href,
-                        content: cleanHtml(content)
-                    });
-                } else {
-                    const content = await contentFile.async('text');
-                    extractedChapters.push({
-                        title: extractTitle(content) || href,
-                        content: cleanHtml(content)
-                    });
-                }
+                let contentFile = zip.file(path);
+                if (!contentFile) contentFile = zip.file(href);
+                if (!contentFile) continue;
+                
+                const content = await contentFile.async('text');
+                extractedChapters.push({
+                    title: extractTitle(content) || href,
+                    content: cleanHtml(content)
+                });
             }
             
             if (extractedChapters.length === 0) {
@@ -804,11 +1347,19 @@
             chapters = extractedChapters;
             currentChapter = 0;
             
-            document.getElementById('pathDisplay').textContent = file.name + ' (' + chapters.length + ' chapters)';
+            document.getElementById('bookTitle').textContent = file.name;
+            document.getElementById('bookPanelTitle').textContent = file.name;
             document.getElementById('btnPrev').disabled = true;
             document.getElementById('btnNext').disabled = chapters.length <= 1;
-            
+            updateChapterProgress();
             renderChapter();
+            
+            // Save to IndexedDB
+            await saveToDB('epub', 'chapters', chapters);
+            await saveToDB('epub', 'currentChapter', currentChapter);
+            await saveToDB('epub', 'bookName', file.name);
+            
+            updateStatus('EPUB loaded: ' + chapters.length + ' chapters', 'success');
         }
         
         function extractTitle(html) {
@@ -817,11 +1368,8 @@
         }
         
         function cleanHtml(html) {
-            // Remove scripts and styles
             html = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
             html = html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
-            
-            // Extract body content
             const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
             return bodyMatch ? bodyMatch[1] : html;
         }
@@ -830,15 +1378,25 @@
             if (!chapters.length) return;
             
             const chapter = chapters[currentChapter];
-            const panel = leftPanelIsBook ? 'leftContent' : 'rightContent';
-            const title = leftPanelIsBook ? 'leftTitle' : 'rightTitle';
+            document.getElementById('bookPanelTitle').textContent = chapter.title || `Chapter ${currentChapter + 1}`;
+            document.getElementById('bookContent').innerHTML = `<div class="epub-container">${chapter.content}</div>`;
             
-            document.getElementById(title).textContent = chapter.title || `Chapter ${currentChapter + 1}`;
-            document.getElementById(panel).innerHTML = `<div class="epub-content">${chapter.content}</div>`;
-            
-            // Update nav buttons
             document.getElementById('btnPrev').disabled = currentChapter <= 0;
             document.getElementById('btnNext').disabled = currentChapter >= chapters.length - 1;
+            updateChapterProgress();
+            
+            // Save current chapter
+            saveToDB('epub', 'currentChapter', currentChapter);
+        }
+        
+        function updateChapterProgress() {
+            if (!chapters.length) {
+                document.getElementById('chapterProgress').style.display = 'none';
+                return;
+            }
+            document.getElementById('chapterProgress').style.display = 'flex';
+            document.getElementById('chapterNum').textContent = `${currentChapter + 1}/${chapters.length}`;
+            document.getElementById('progressFill').style.width = `${((currentChapter + 1) / chapters.length) * 100}%`;
         }
         
         function nextChapter() {
@@ -855,23 +1413,42 @@
             }
         }
         
-        // Load Wiki
-        function loadWiki(files) {
+        // ============================================
+        // WIKI LOADING
+        // ============================================
+        async function loadWiki(files) {
             wikiFiles = {};
+            const fileData = {};
             
             for (const file of files) {
                 if (file.name.endsWith('.md')) {
                     const path = file.webkitRelativePath || file.name;
-                    wikiFiles[path] = file;
+                    const content = await file.text();
+                    wikiFiles[path] = { name: file.name, content: content };
+                    fileData[path] = { name: file.name, content: content };
                 }
             }
             
-            renderFileTree();
+            renderWikiTree();
+            
+            // Save to IndexedDB
+            await saveToDB('wiki', 'files', fileData);
+            
+            updateStatus('Wiki loaded: ' + Object.keys(wikiFiles).length + ' files', 'success');
         }
         
-        function renderFileTree() {
-            const tree = document.getElementById('fileTree');
+        function renderWikiTree() {
+            const tree = document.getElementById('wikiFileTree');
             tree.innerHTML = '';
+            
+            if (Object.keys(wikiFiles).length === 0) {
+                tree.innerHTML = `
+                    <div class="empty-state" style="padding: 30px 16px;">
+                        <div class="icon" style="font-size: 28px;">📁</div>
+                        <p style="font-size: 11px;">Import a wiki directory to browse files</p>
+                    </div>`;
+                return;
+            }
             
             const structure = buildTreeStructure(Object.keys(wikiFiles));
             renderTreeNode(structure, tree, 0);
@@ -879,11 +1456,9 @@
         
         function buildTreeStructure(paths) {
             const root = {};
-            
             for (const path of paths) {
                 const parts = path.split('/');
                 let current = root;
-                
                 for (let i = 0; i < parts.length; i++) {
                     const part = parts[i];
                     if (!current[part]) {
@@ -892,7 +1467,6 @@
                     current = current[part];
                 }
             }
-            
             return root;
         }
         
@@ -910,13 +1484,13 @@
                 const isFile = value.__file;
                 const item = document.createElement('div');
                 item.className = `tree-item ${isFile ? 'file' : 'directory'}`;
-                item.style.paddingLeft = `${14 + depth * 14}px`;
+                item.style.paddingLeft = `${12 + depth * 12}px`;
                 
                 const icon = isFile ? '📄' : '📁';
                 item.innerHTML = `<span class="icon">${icon}</span><span>${name}</span>`;
                 
                 if (isFile) {
-                    item.onclick = () => loadWikiFile(value.__path, item);
+                    item.onclick = () => loadWikiPage(value.__path, item);
                 }
                 
                 container.appendChild(item);
@@ -927,32 +1501,27 @@
             }
         }
         
-        async function loadWikiFile(path, element, skipHistory = false) {
+        async function loadWikiPage(path, element, skipHistory = false) {
             const file = wikiFiles[path];
             if (!file) return;
             
-            // Determine which panel to use (opposite of book panel)
-            const wikiPanel = leftPanelIsBook ? 'right' : 'left';
-            const panelId = wikiPanel + 'Content';
-            const titleId = wikiPanel + 'Title';
-            const navId = wikiPanel + 'Nav';
-            const backId = wikiPanel + 'Back';
-            
-            // Save current page to history before navigating
+            // Save to history
             if (!skipHistory && currentWikiPath && currentWikiPath !== path) {
-                wikiHistory[wikiPanel].push(currentWikiPath);
+                wikiHistory.push(currentWikiPath);
+                if (wikiHistory.length > 50) wikiHistory.shift();
             }
             
-            // Update active state in sidebar
+            currentWikiPath = path;
+            
+            // Update active state in tree
             document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('active'));
             if (element) {
                 element.classList.add('active');
             } else {
-                // Find and highlight the tree item
                 const items = document.querySelectorAll('.tree-item');
                 for (const item of items) {
                     const span = item.querySelector('span:last-child');
-                    if (span && (file.name === span.textContent || path.endsWith(span.textContent))) {
+                    if (span && file.name === span.textContent) {
                         item.classList.add('active');
                         item.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         break;
@@ -960,57 +1529,45 @@
                 }
             }
             
-            currentWikiPath = path;
+            // Render content
+            const html = markdownToHtml(file.content);
+            document.getElementById('wikiPanelTitle').textContent = file.name;
+            document.getElementById('wikiContent').innerHTML = `<div class="markdown-body">${html}</div>`;
             
-            const content = await file.text();
-            const html = markdownToHtml(content);
+            // Update back button
+            document.getElementById('wikiBackBtn').disabled = wikiHistory.length === 0;
             
-            document.getElementById(titleId).textContent = file.name;
-            document.getElementById(panelId).innerHTML = `<div class="markdown-body">${html}</div>`;
-            
-            // Show nav buttons
-            document.getElementById(navId).style.display = 'flex';
-            document.getElementById(backId).disabled = wikiHistory[wikiPanel].length === 0;
-            
-            // Setup wiki link clicks
-            setupWikiLinks(document.getElementById(panelId), wikiPanel);
+            // Setup wiki links
+            setupWikiLinks(document.getElementById('wikiContent'));
         }
         
-        function wikiGoBack(panel) {
-            const history = wikiHistory[panel];
-            if (history.length === 0) return;
-            
-            const prevPath = history.pop();
-            loadWikiFile(prevPath, null, true);
-            
-            // Update back button state
-            document.getElementById(panel + 'Back').disabled = history.length === 0;
+        function wikiGoBack() {
+            if (wikiHistory.length === 0) return;
+            const prevPath = wikiHistory.pop();
+            loadWikiPage(prevPath, null, true);
+            document.getElementById('wikiBackBtn').disabled = wikiHistory.length === 0;
         }
         
-        function setupWikiLinks(container, panel) {
+        function setupWikiLinks(container) {
             container.querySelectorAll('.wikilink').forEach(link => {
                 link.addEventListener('click', (e) => {
                     e.preventDefault();
                     const path = link.dataset.path;
-                    navigateToWiki(path, panel);
+                    navigateToWiki(path);
                 });
             });
         }
         
-        function navigateToWiki(path, panel) {
-            // Find the file in wikiFiles
+        function navigateToWiki(path) {
             let fullPath = null;
             
-            // Try exact match first
             if (wikiFiles[path]) {
                 fullPath = path;
             } else {
-                // Try with .md extension
                 const withMd = path.endsWith('.md') ? path : path + '.md';
                 fullPath = Object.keys(wikiFiles).find(p => p.endsWith('/' + withMd) || p === withMd);
                 
                 if (!fullPath) {
-                    // Try without .md
                     const withoutMd = path.replace(/\.md$/, '');
                     fullPath = Object.keys(wikiFiles).find(p => {
                         const parts = p.split('/');
@@ -1024,12 +1581,17 @@
                 return;
             }
             
-            loadWikiFile(fullPath, null);
+            loadWikiPage(fullPath, null);
         }
         
         function markdownToHtml(md) {
-            // Frontmatter
-            md = md.replace(/^---\n[\s\S]*?\n---\n/, '');
+            // Extract frontmatter
+            let frontmatter = '';
+            const fmMatch = md.match(/^---\n([\s\S]*?)\n---\n/);
+            if (fmMatch) {
+                frontmatter = fmMatch[1];
+                md = md.substring(fmMatch[0].length);
+            }
             
             // Headers
             md = md.replace(/^###### (.*$)/gim, '<h6>$1</h6>');
@@ -1046,7 +1608,7 @@
             md = md.replace(/__(.*?)__/g, '<strong>$1</strong>');
             md = md.replace(/_(.*?)_/g, '<em>$1</em>');
             
-            // Wikilinks [[file.md]] or [[file]]
+            // Wikilinks
             md = md.replace(/\[\[([^\]]+)\]\]/g, (match, p1) => {
                 const path = p1.includes('.md') ? p1 : p1 + '.md';
                 return `<a class="wikilink" data-path="${path}">${p1.replace('.md', '')}</a>`;
@@ -1095,9 +1657,7 @@
                 }
             }
             
-            if (inParagraph) {
-                result.push('</p>');
-            }
+            if (inParagraph) result.push('</p>');
             
             md = result.join('\n');
             md = md.replace(/<p>\n<\/p>/g, '');
@@ -1105,47 +1665,34 @@
                 return '<p>' + content.replace(/\n/g, ' ') + '</p>';
             });
             
+            // Add frontmatter display
+            if (frontmatter) {
+                md = `<div class="frontmatter"><pre><code>${frontmatter}</code></pre></div>` + md;
+            }
+            
             return md;
         }
         
-        // Swap panels
+        // ============================================
+        // SWAP PANELS
+        // ============================================
         function swapPanels() {
-            leftPanelIsBook = !leftPanelIsBook;
+            const bookPanel = document.getElementById('bookPanel');
+            const wikiPanel = document.getElementById('wikiPanel');
+            const divider = document.getElementById('divider');
+            const splitView = document.getElementById('splitView');
             
-            // Swap content
-            const leftContent = document.getElementById('leftContent').innerHTML;
-            const rightContent = document.getElementById('rightContent').innerHTML;
-            const leftTitle = document.getElementById('leftTitle').textContent;
-            const rightTitle = document.getElementById('rightTitle').textContent;
-            const leftNavDisplay = document.getElementById('leftNav').style.display;
-            const rightNavDisplay = document.getElementById('rightNav').style.display;
-            const leftBackDisabled = document.getElementById('leftBack').disabled;
-            const rightBackDisabled = document.getElementById('rightBack').disabled;
-            
-            document.getElementById('leftContent').innerHTML = rightContent;
-            document.getElementById('rightContent').innerHTML = leftContent;
-            document.getElementById('leftTitle').textContent = rightTitle;
-            document.getElementById('rightTitle').textContent = leftTitle;
-            document.getElementById('leftNav').style.display = rightNavDisplay;
-            document.getElementById('rightNav').style.display = leftNavDisplay;
-            document.getElementById('leftBack').disabled = rightBackDisabled;
-            document.getElementById('rightBack').disabled = leftBackDisabled;
-            
-            // Re-setup wiki links
-            setupWikiLinks(document.getElementById('leftContent'), 'left');
-            setupWikiLinks(document.getElementById('rightContent'), 'right');
-            
-            // Re-render book if needed
-            if (chapters.length > 0) {
-                renderChapter();
-            }
+            // Swap DOM positions
+            splitView.insertBefore(wikiPanel, bookPanel);
+            splitView.insertBefore(divider, bookPanel);
         }
         
-        // Divider drag
+        // ============================================
+        // DIVIDER DRAG
+        // ============================================
         function setupDividerDrag() {
             const divider = document.getElementById('divider');
             const splitView = document.getElementById('splitView');
-            const leftPanel = document.getElementById('leftPanel');
             let isDragging = false;
             
             divider.addEventListener('mousedown', (e) => {
@@ -1161,8 +1708,9 @@
                 const x = e.clientX - rect.left;
                 const percent = (x / rect.width) * 100;
                 
-                if (percent > 20 && percent < 80) {
-                    leftPanel.style.flex = `0 0 ${percent}%`;
+                if (percent > 25 && percent < 75) {
+                    const bookPanel = document.getElementById('bookPanel');
+                    bookPanel.style.flex = `0 0 ${percent}%`;
                 }
             });
             
@@ -1172,11 +1720,16 @@
             });
         }
         
-        // Close modal on overlay click
+        // ============================================
+        // MODAL CLOSE
+        // ============================================
         document.getElementById('importModal').addEventListener('click', (e) => {
-            if (e.target === e.currentTarget) {
-                hideImportModal();
-            }
+            if (e.target === e.currentTarget) hideImportModal();
+        });
+        
+        // Escape to close modal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') hideImportModal();
         });
     </script>
 </body>
