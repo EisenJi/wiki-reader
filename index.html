@@ -1935,12 +1935,14 @@
             },
             
             showBar() {
-                this.bar.classList.add('visible');
+                const bar = document.getElementById('ttsBar');
+                if (bar) bar.classList.add('visible');
                 const btn = document.getElementById('btnTTS');
                 if (btn) btn.style.display = 'inline-flex';
             },
             hideBar() {
-                this.bar.classList.remove('visible');
+                const bar = document.getElementById('ttsBar');
+                if (bar) bar.classList.remove('visible');
                 const btn = document.getElementById('btnTTS');
                 if (btn) btn.style.display = 'none';
             },
