@@ -29,6 +29,7 @@
             --link: #6b9fb9;
             --selection: rgba(107, 159, 185, 0.3);
             --shadow: rgba(0,0,0,0.3);
+            --tts-highlight: rgba(255, 215, 0, 0.25);
             
             /* Typography - research-backed defaults */
             --font-body: Georgia, "Times New Roman", serif;
@@ -63,6 +64,7 @@
             --link: #2563eb;
             --selection: rgba(37, 99, 235, 0.2);
             --shadow: rgba(0,0,0,0.08);
+            --tts-highlight: rgba(255, 193, 7, 0.3);
         }
         
         [data-theme="sepia"] {
@@ -84,6 +86,7 @@
             --link: #8b6914;
             --selection: rgba(139, 105, 20, 0.2);
             --shadow: rgba(67, 52, 34, 0.1);
+            --tts-highlight: rgba(255, 183, 77, 0.35);
         }
         
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1003,6 +1006,11 @@
             .split-view { flex-direction: column; }
             .panel { min-height: 200px; }
         }
+        .tts-control { display: flex; align-items: center; gap: 4px; }
+        .tts-control button { padding: 2px 6px; font-size: 12px; }
+        .tts-active { background: var(--tts-highlight) !important; border-radius: 3px; transition: background 0.2s; }
+        .sentence { cursor: pointer; }
+        .sentence:hover { opacity: 0.8; }
     </style>
 </head>
 <body data-theme="dark">
@@ -1041,6 +1049,11 @@
                     <button onclick="setTheme('dark')" id="themeDark" class="active" title="Dark theme">🌙</button>
                     <button onclick="setTheme('light')" id="themeLight" title="Light theme">☀️</button>
                     <button onclick="setTheme('sepia')" id="themeSepia" title="Sepia theme">📜</button>
+                </div>
+                <div class="separator"></div>
+                <div class="tts-control">
+                    <button onclick="toggleTTS()" id="btnTTS" title="朗读 / 暂停">▶️</button>
+                    <input type="range" id="ttsRate" min="0.5" max="2" step="0.1" value="1" title="语速" onchange="changeTTSRate()" style="width:50px;vertical-align:middle;">
                 </div>
             </div>
         </div>
@@ -1835,6 +1848,98 @@
         
         // Setup reading progress listener
         document.getElementById('bookContent').addEventListener('scroll', updateReadingProgress);
+
+        // ============================================
+        // TTS - SpeechSynthesis
+        // ============================================
+        let ttsSentences = [];
+        let ttsCurrentIndex = -1;
+        let ttsIsPlaying = false;
+        let ttsIsPaused = false;
+        let ttsUtterance = null;
+
+        function wrapSentences() {
+            const container = document.getElementById('bookContent');
+            if (!container) return;
+            const paragraphs = container.querySelectorAll('p');
+            ttsSentences = [];
+            paragraphs.forEach(p => {
+                const text = p.textContent;
+                const parts = text.split(/([。！？.!?]+)/).filter(s => s.trim());
+                p.innerHTML = '';
+                for (let i = 0; i < parts.length; i += 2) {
+                    const sentence = (parts[i] || '') + (parts[i+1] || '');
+                    if (!sentence.trim()) continue;
+                    const span = document.createElement('span');
+                    span.className = 'sentence';
+                    span.textContent = sentence;
+                    span.dataset.index = ttsSentences.length;
+                    span.addEventListener('click', () => onSentenceClick(span));
+                    p.appendChild(span);
+                    ttsSentences.push(span);
+                }
+            });
+        }
+
+        function ttsHighlight(index) {
+            ttsSentences.forEach((s, i) => s.classList.toggle('tts-active', i === index));
+            if (index >= 0 && ttsSentences[index]) {
+                ttsSentences[index].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        function ttsSpeak(index) {
+            if (index >= ttsSentences.length) {
+                ttsIsPlaying = false; ttsIsPaused = false; ttsCurrentIndex = -1;
+                ttsHighlight(-1);
+                document.getElementById('btnTTS').textContent = '▶️';
+                return;
+            }
+            ttsCurrentIndex = index;
+            ttsHighlight(index);
+            ttsUtterance = new SpeechSynthesisUtterance(ttsSentences[index].textContent);
+            ttsUtterance.lang = 'zh-CN';
+            ttsUtterance.rate = parseFloat(document.getElementById('ttsRate').value);
+            ttsUtterance.onend = () => { if (!ttsIsPaused && ttsIsPlaying) ttsSpeak(index + 1); };
+            ttsUtterance.onerror = () => { document.getElementById('btnTTS').textContent = '▶️'; };
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(ttsUtterance);
+            ttsIsPlaying = true; ttsIsPaused = false;
+            document.getElementById('btnTTS').textContent = '⏸️';
+        }
+
+        function toggleTTS() {
+            if (ttsIsPlaying && !ttsIsPaused) {
+                window.speechSynthesis.cancel();
+                ttsIsPaused = true; ttsIsPlaying = false;
+                document.getElementById('btnTTS').textContent = '▶️';
+            } else if (ttsIsPaused && ttsCurrentIndex >= 0) {
+                ttsSpeak(ttsCurrentIndex);
+            } else {
+                if (ttsSentences.length === 0) wrapSentences();
+                ttsSpeak(0);
+            }
+        }
+
+        function changeTTSRate() {
+            if (ttsIsPlaying && !ttsIsPaused && ttsCurrentIndex >= 0) {
+                ttsSpeak(ttsCurrentIndex);
+            }
+        }
+
+        function onSentenceClick(span) {
+            const idx = parseInt(span.dataset.index);
+            window.speechSynthesis.cancel();
+            ttsIsPaused = false;
+            ttsSpeak(idx);
+        }
+
+        // Hook into chapter load
+        const originalRenderChapter = renderChapter;
+        renderChapter = function(index) {
+            originalRenderChapter(index);
+            setTimeout(wrapSentences, 100);
+        };
     </script>
 </body>
 </html>
