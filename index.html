@@ -1079,6 +1079,10 @@
             background: var(--selection) !important;
             border-left-color: var(--accent);
         }
+        .tts-sentence.block {
+            display: block;
+            margin-bottom: 4px;
+        }
     </style>
 </head>
 <body data-theme="dark">
@@ -1107,6 +1111,10 @@
                 <button onclick="ttsTogglePlay()" id="btnTTS" title="朗读" style="background:transparent;border:none;color:var(--text-secondary);cursor:pointer;padding:2px 6px;border-radius:4px;margin-left:6px;display:none;align-items:center;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" id="iconPlay"><path d="M8 5v14l11-7z"/></svg>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" id="iconPause" style="display:none"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/></svg>
+                </button>
+                <button onclick="wikiTtsTogglePlay()" id="btnWikiTTS" title="朗读Wiki" style="background:transparent;border:none;color:var(--text-secondary);cursor:pointer;padding:2px 6px;border-radius:4px;margin-left:6px;display:none;align-items:center;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" id="wikiIconPlay"><path d="M8 5v14l11-7z"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" id="wikiIconPause" style="display:none"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/></svg>
                 </button>
             </div>
             
@@ -1505,6 +1513,7 @@
             document.getElementById('bookTitle').textContent = file.name;
             document.getElementById('bookPanelTitle').textContent = file.name;
             document.getElementById('btnTTS').style.display = 'inline-flex';
+            document.getElementById('btnWikiTTS').style.display = 'none';
             document.getElementById('btnPrev').disabled = true;
             document.getElementById('btnNext').disabled = chapters.length <= 1;
             updateChapterProgress();
@@ -1689,12 +1698,19 @@
             const html = markdownToHtml(file.content);
             document.getElementById('wikiPanelTitle').textContent = file.name;
             document.getElementById('wikiContent').innerHTML = `<div class="markdown-body">${html}</div>`;
-            
+
             // Update back button
             document.getElementById('wikiBackBtn').disabled = wikiHistory.length === 0;
-            
+
+            // Show wiki TTS button, hide book TTS button
+            document.getElementById('btnWikiTTS').style.display = 'inline-flex';
+            document.getElementById('btnTTS').style.display = 'none';
+
             // Setup wiki links
             setupWikiLinks(document.getElementById('wikiContent'));
+
+            // Auto-wrap sentences for TTS after render
+            setTimeout(() => WikiTTS.wrap(), 50);
         }
         
         function wikiGoBack() {
@@ -1917,6 +1933,18 @@
         // Setup reading progress listener
         document.getElementById('bookContent').addEventListener('scroll', updateReadingProgress);
 
+        // Space key toggles play/pause for whichever TTS is active
+        document.addEventListener('keydown', (e) => {
+            if (e.key === ' ' && e.target === document.body) {
+                e.preventDefault();
+                if (TTS.state !== 'idle') {
+                    ttsTogglePlay();
+                } else if (WikiTTS.state !== 'idle') {
+                    wikiTtsTogglePlay();
+                }
+            }
+        });
+
         // ============================================
         // TTS - SpeechSynthesis (Redesigned)
         // ============================================
@@ -2112,11 +2140,250 @@
             }
         };
         
+        // ============================================
+        // WIKI TTS - SpeechSynthesis for Wiki Panel
+        // ============================================
+        const WikiTTS = {
+            sentences: [],
+            currentIndex: -1,
+            state: 'idle',
+            rate: 1,
+            utterance: null,
+            
+            detectLang(text) {
+                const chineseChars = (text.match(/[\u4e00-\u9fff]/g) || []).length;
+                return chineseChars / text.length > 0.3 ? 'zh-CN' : 'en-US';
+            },
+            
+            showBar() {
+                const bar = document.getElementById('ttsBar');
+                if (bar) bar.classList.add('visible');
+            },
+            hideBar() {
+                const bar = document.getElementById('ttsBar');
+                if (bar) bar.classList.remove('visible');
+            },
+            
+            updatePlayIcon() {
+                const isPlaying = this.state === 'playing';
+                const play = document.getElementById('ttsIconPlay');
+                const pause = document.getElementById('ttsIconPause');
+                const btnPlay = document.getElementById('wikiIconPlay');
+                const btnPause = document.getElementById('wikiIconPause');
+                if (play) play.style.display = isPlaying ? 'none' : 'block';
+                if (pause) pause.style.display = isPlaying ? 'block' : 'none';
+                if (btnPlay) btnPlay.style.display = isPlaying ? 'none' : 'block';
+                if (btnPause) btnPause.style.display = isPlaying ? 'block' : 'none';
+            },
+            
+            updateSpeedButtons() {
+                document.getElementById('ttsSpeedSlow').classList.toggle('active', this.rate === 0.75);
+                document.getElementById('ttsSpeedNormal').classList.toggle('active', this.rate === 1);
+                document.getElementById('ttsSpeedFast').classList.toggle('active', this.rate === 1.5);
+            },
+            
+            highlight(index) {
+                this.sentences.forEach((s, i) => s.classList.toggle('active', i === index));
+                if (index >= 0 && this.sentences[index]) {
+                    this.sentences[index].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            },
+            
+            clearHighlight() {
+                this.sentences.forEach(s => s.classList.remove('active'));
+            },
+            
+            wrap() {
+                const container = document.getElementById('wikiContent');
+                if (!container) return;
+                // Unwrap first if already wrapped
+                this.unwrap();
+                const paragraphs = container.querySelectorAll('p, li, h1, h2, h3, h4, h5, h6, blockquote');
+                this.sentences = [];
+                paragraphs.forEach(p => {
+                    const text = p.textContent;
+                    if (!text.trim()) return;
+                    // Split by sentence-ending punctuation
+                    const parts = text.split(/([。！？.!?]+)/).filter(s => s.trim());
+                    const originalHTML = p.innerHTML;
+                    // Only wrap if we have splittable sentences and no complex HTML
+                    if (parts.length >= 2 && !originalHTML.includes('<a') && !originalHTML.includes('<code') && !originalHTML.includes('<pre')) {
+                        p.innerHTML = '';
+                        for (let i = 0; i < parts.length; i += 2) {
+                            const sentence = (parts[i] || '') + (parts[i+1] || '');
+                            if (!sentence.trim()) continue;
+                            const span = document.createElement('span');
+                            span.className = 'tts-sentence';
+                            span.textContent = sentence;
+                            span.dataset.index = this.sentences.length;
+                            span.addEventListener('click', (e) => this.onSentenceClick(e, span));
+                            p.appendChild(span);
+                            this.sentences.push(span);
+                        }
+                    } else {
+                        // For short or complex elements, wrap the whole element as one sentence
+                        const span = document.createElement('span');
+                        span.className = 'tts-sentence block';
+                        span.innerHTML = originalHTML;
+                        span.dataset.index = this.sentences.length;
+                        // Re-attach click listeners for nested links after wrapping
+                        span.querySelectorAll('a').forEach(a => {
+                            a.addEventListener('click', (e) => {
+                                if (a.classList.contains('wikilink')) {
+                                    e.preventDefault();
+                                    const path = a.dataset.path;
+                                    if (path) navigateToWiki(path);
+                                }
+                            });
+                        });
+                        span.addEventListener('click', (e) => {
+                            if (e.target.tagName === 'A' || e.target.closest('a')) return;
+                            this.onSentenceClick(e, span);
+                        });
+                        p.innerHTML = '';
+                        p.appendChild(span);
+                        this.sentences.push(span);
+                    }
+                });
+            },
+            
+            unwrap() {
+                const container = document.getElementById('wikiContent');
+                if (!container) return;
+                container.querySelectorAll('.tts-sentence').forEach(span => {
+                    const parent = span.parentNode;
+                    if (parent) {
+                        // Move all children of span back to parent
+                        while (span.firstChild) {
+                            parent.insertBefore(span.firstChild, span);
+                        }
+                        parent.removeChild(span);
+                    }
+                });
+                this.sentences = [];
+                this.clearHighlight();
+            },
+            
+            speak(index) {
+                if (index >= this.sentences.length) {
+                    this.stop();
+                    return;
+                }
+                this.currentIndex = index;
+                this.highlight(index);
+                
+                const text = this.sentences[index].textContent;
+                this.utterance = new SpeechSynthesisUtterance(text);
+                this.utterance.lang = this.detectLang(text);
+                this.utterance.rate = this.rate;
+                
+                this.utterance.onend = () => {
+                    if (this.state === 'playing') this.speak(index + 1);
+                };
+                this.utterance.onerror = () => {
+                    this.state = 'paused';
+                    this.updatePlayIcon();
+                };
+                
+                window.speechSynthesis.cancel();
+                window.speechSynthesis.speak(this.utterance);
+                this.state = 'playing';
+                this.updatePlayIcon();
+            },
+            
+            start() {
+                if (this.sentences.length === 0) this.wrap();
+                this.showBar();
+                this.speak(0);
+            },
+            
+            pause() {
+                window.speechSynthesis.cancel();
+                this.state = 'paused';
+                this.updatePlayIcon();
+            },
+            
+            resume() {
+                if (this.currentIndex >= 0) {
+                    this.speak(this.currentIndex);
+                }
+            },
+            
+            stop() {
+                window.speechSynthesis.cancel();
+                this.state = 'idle';
+                this.currentIndex = -1;
+                this.clearHighlight();
+                this.updatePlayIcon();
+                this.hideBar();
+            },
+            
+            prev() {
+                if (this.currentIndex > 0) {
+                    window.speechSynthesis.cancel();
+                    this.speak(this.currentIndex - 1);
+                }
+            },
+            
+            next() {
+                if (this.currentIndex < this.sentences.length - 1) {
+                    window.speechSynthesis.cancel();
+                    this.speak(this.currentIndex + 1);
+                }
+            },
+            
+            setSpeed(rate) {
+                this.rate = rate;
+                this.updateSpeedButtons();
+                if (this.state === 'playing') {
+                    window.speechSynthesis.cancel();
+                    this.speak(this.currentIndex);
+                }
+            },
+            
+            togglePlay() {
+                if (this.state === 'playing') {
+                    this.pause();
+                } else if (this.state === 'paused') {
+                    this.resume();
+                } else {
+                    this.start();
+                }
+            },
+            
+            onSentenceClick(e, span) {
+                const idx = parseInt(span.dataset.index);
+                
+                if (this.state === 'idle') {
+                    this.showBar();
+                    this.speak(idx);
+                } else if (this.state === 'playing') {
+                    if (idx === this.currentIndex) {
+                        this.pause();
+                    } else {
+                        window.speechSynthesis.cancel();
+                        this.speak(idx);
+                    }
+                } else if (this.state === 'paused') {
+                    if (idx === this.currentIndex) {
+                        this.resume();
+                    }
+                    // Click on other sentence when paused: do nothing
+                }
+            }
+        };
+        
         function ttsTogglePlay() { TTS.togglePlay(); }
         function ttsPrev() { TTS.prev(); }
         function ttsNext() { TTS.next(); }
         function ttsStop() { TTS.stop(); }
         function ttsSetSpeed(rate) { TTS.setSpeed(rate); }
+        
+        function wikiTtsTogglePlay() { WikiTTS.togglePlay(); }
+        function wikiTtsPrev() { WikiTTS.prev(); }
+        function wikiTtsNext() { WikiTTS.next(); }
+        function wikiTtsStop() { WikiTTS.stop(); }
+        function wikiTtsSetSpeed(rate) { WikiTTS.setSpeed(rate); }
         
         // Hook into chapter load
         const originalRenderChapter = renderChapter;
@@ -2131,24 +2398,24 @@
 
     <!-- TTS Floating Bar -->
     <div class="tts-bar" id="ttsBar">
-        <button onclick="ttsPrev()" title="上一句">
+        <button onclick="if (TTS.state !== 'idle') { ttsPrev(); } else { wikiTtsPrev(); }" title="上一句">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
-        <button onclick="ttsTogglePlay()" id="ttsPlayBtn" title="播放 / 暂停">
+        <button onclick="if (TTS.state !== 'idle') { ttsTogglePlay(); } else { wikiTtsTogglePlay(); }" id="ttsPlayBtn" title="播放 / 暂停">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" id="ttsIconPlay"><path d="M8 5v14l11-7z"/></svg>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" id="ttsIconPause" style="display:none"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/></svg>
         </button>
-        <button onclick="ttsNext()" title="下一句">
+        <button onclick="if (TTS.state !== 'idle') { ttsNext(); } else { wikiTtsNext(); }" title="下一句">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
         <div class="tts-sep"></div>
         <div class="tts-speed">
-            <button onclick="ttsSetSpeed(0.75)" id="ttsSpeedSlow" title="慢速">慢</button>
-            <button onclick="ttsSetSpeed(1)" id="ttsSpeedNormal" class="active" title="正常">常</button>
-            <button onclick="ttsSetSpeed(1.5)" id="ttsSpeedFast" title="快速">快</button>
+            <button onclick="if (TTS.state !== 'idle') { ttsSetSpeed(0.75); } else { wikiTtsSetSpeed(0.75); }" id="ttsSpeedSlow" title="慢速">慢</button>
+            <button onclick="if (TTS.state !== 'idle') { ttsSetSpeed(1); } else { wikiTtsSetSpeed(1); }" id="ttsSpeedNormal" class="active" title="正常">常</button>
+            <button onclick="if (TTS.state !== 'idle') { ttsSetSpeed(1.5); } else { wikiTtsSetSpeed(1.5); }" id="ttsSpeedFast" title="快速">快</button>
         </div>
         <div class="tts-sep"></div>
-        <button onclick="ttsStop()" title="停止">
+        <button onclick="if (TTS.state !== 'idle') { ttsStop(); } else { wikiTtsStop(); }" title="停止">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg>
         </button>
     </div>
