@@ -1987,6 +1987,9 @@
                         span.dataset.index = this.sentences.length;
                         span.addEventListener('click', (e) => this.onSentenceClick(e, span));
                         p.appendChild(span);
+                        if (i + 2 < parts.length) {
+                            p.appendChild(document.createTextNode(' '));
+                        }
                         this.sentences.push(span);
                     }
                 });
