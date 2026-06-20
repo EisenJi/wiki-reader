@@ -1103,6 +1103,10 @@
                 <button onclick="nextChapter()" id="btnNext" disabled title="Next chapter">›</button>
                 <div class="separator"></div>
                 <span class="book-title" id="bookTitle">No book loaded</span>
+                <button onclick="ttsTogglePlay()" id="btnTTS" title="朗读" style="background:transparent;border:none;color:var(--text-secondary);cursor:pointer;padding:4px 8px;border-radius:4px;margin-left:8px;display:none;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" id="iconPlay"><path d="M8 5v14l11-7z"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" id="iconPause" style="display:none"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/></svg>
+                </button>
             </div>
             
             <div class="toolbar-right">
@@ -1934,13 +1938,13 @@
             updatePlayIcon() {
                 const play = document.getElementById('ttsIconPlay');
                 const pause = document.getElementById('ttsIconPause');
-                if (this.state === 'playing') {
-                    play.style.display = 'none';
-                    pause.style.display = 'block';
-                } else {
-                    play.style.display = 'block';
-                    pause.style.display = 'none';
-                }
+                const btnPlay = document.getElementById('iconPlay');
+                const btnPause = document.getElementById('iconPause');
+                const isPlaying = this.state === 'playing';
+                if (play) play.style.display = isPlaying ? 'none' : 'block';
+                if (pause) pause.style.display = isPlaying ? 'block' : 'none';
+                if (btnPlay) btnPlay.style.display = isPlaying ? 'none' : 'block';
+                if (btnPause) btnPause.style.display = isPlaying ? 'block' : 'none';
             },
             
             updateSpeedButtons() {
@@ -2013,6 +2017,7 @@
             start() {
                 if (this.sentences.length === 0) this.wrap();
                 this.showBar();
+                document.getElementById('btnTTS').style.display = 'inline-flex';
                 this.speak(0);
             },
             
@@ -2035,6 +2040,7 @@
                 this.clearHighlight();
                 this.updatePlayIcon();
                 this.hideBar();
+                document.getElementById('btnTTS').style.display = 'none';
             },
             
             prev() {
