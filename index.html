@@ -761,25 +761,25 @@
         }
 
         /* ============================================
-           GUILD LIST
+           GUIDE LIST
            ============================================ */
-        .guild-list {
+        .guide-list {
             padding: 24px 32px;
         }
 
-        .guild-list h1 {
+        .guide-list h1 {
             margin-bottom: 1em;
             border-bottom: 1px solid var(--border);
             padding-bottom: 0.4em;
         }
 
-        .guild-grid {
+        .guide-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
             gap: 16px;
         }
 
-        .guild-card {
+        .guide-card {
             background: var(--bg-secondary);
             border: 1px solid var(--border);
             border-radius: 8px;
@@ -788,18 +788,18 @@
             transition: all 0.15s ease;
         }
 
-        .guild-card:hover {
+        .guide-card:hover {
             border-color: var(--accent);
             background: var(--bg-tertiary);
         }
 
-        .guild-card h3 {
+        .guide-card h3 {
             margin: 0 0 8px;
             font-size: 1.1em;
             color: var(--text-primary);
         }
 
-        .guild-card .guild-filename {
+        .guide-card .guide-filename {
             margin: 0;
             font-size: 0.85em;
             color: var(--text-faint);
@@ -1429,10 +1429,10 @@
                 wikiFiles = savedWikiFiles;
                 renderWikiTree();
 
-                // 自动显示 guild 列表（如果存在）
-                const hasGuilds = Object.keys(wikiFiles).some(p => p.toLowerCase().startsWith('guides/') || p.toLowerCase().startsWith('guilds/'));
-                if (hasGuilds) {
-                    renderGuildList();
+                // 自动显示 guide 列表（如果存在）
+                const hasGuides = Object.keys(wikiFiles).some(p => p.toLowerCase().startsWith('guides/'));
+                if (hasGuides) {
+                    renderGuideList();
                 }
 
                 updateStatus('Wiki restored from previous session', 'success');
@@ -1695,10 +1695,10 @@
 
             updateStatus('Wiki loaded: ' + Object.keys(wikiFiles).length + ' files', 'success');
 
-            // 自动显示 guild 列表（如果存在）
-            const hasGuilds = Object.keys(wikiFiles).some(p => p.toLowerCase().startsWith('guides/') || p.toLowerCase().startsWith('guilds/'));
-            if (hasGuilds) {
-                renderGuildList();
+            // 自动显示 guide 列表（如果存在）
+            const hasGuides = Object.keys(wikiFiles).some(p => p.toLowerCase().startsWith('guides/'));
+            if (hasGuides) {
+                renderGuideList();
             }
         }
         
@@ -1814,23 +1814,16 @@
         }
 
         // ============================================
-        // GUILD LIST
+        // GUIDE LIST
         // ============================================
-        function renderGuildList() {
-            // 优先查找 guides/ 目录，如果没有则查找 guilds/ 目录
-            let guildPaths = Object.keys(wikiFiles).filter(p =>
+        function renderGuideList() {
+            // 查找 guides/ 目录下的 markdown 文件
+            let guidePaths = Object.keys(wikiFiles).filter(p =>
                 p.toLowerCase().startsWith('guides/') && p.endsWith('.md')
             );
 
-            // 如果没有 guides/，尝试 guilds/
-            if (guildPaths.length === 0) {
-                guildPaths = Object.keys(wikiFiles).filter(p =>
-                    p.toLowerCase().startsWith('guilds/') && p.endsWith('.md')
-                );
-            }
-
-            if (guildPaths.length === 0) {
-                // 没有 guides/ 或 guilds/ 目录，保持原有空白状态
+            if (guidePaths.length === 0) {
+                // 没有 guides/ 目录，保持原有空白状态
                 document.getElementById('wikiContent').innerHTML = `
                     <div class="empty-state">
                         <div class="icon">📝</div>
@@ -1840,21 +1833,21 @@
                 return;
             }
 
-            // 构建 guild 列表 HTML
-            let listHtml = '<div class="markdown-body guild-list"><h1>Guides</h1><div class="guild-grid">';
+            // 构建 guide 列表 HTML
+            let listHtml = '<div class="markdown-body guide-list"><h1>Guides</h1><div class="guide-grid">';
 
-            for (const path of guildPaths) {
+            for (const path of guidePaths) {
                 const file = wikiFiles[path];
-                // 从文件名提取 guild 名称（去掉 .md）
-                const guildName = file.name.replace(/\.md$/i, '');
+                // 从文件名提取 guide 名称（去掉 .md）
+                const guideName = file.name.replace(/\.md$/i, '');
                 // 尝试从内容提取第一行作为描述
                 const firstLine = file.content.split('\n')[0].replace(/^#\s*/, '').trim();
-                const displayName = firstLine || guildName;
+                const displayName = firstLine || guideName;
 
                 listHtml += `
-                    <div class="guild-card" data-path="${path}">
+                    <div class="guide-card" data-path="${path}">
                         <h3>${displayName}</h3>
-                        <p class="guild-filename">${file.name}</p>
+                        <p class="guide-filename">${file.name}</p>
                     </div>
                 `;
             }
@@ -1865,7 +1858,7 @@
             document.getElementById('wikiContent').innerHTML = listHtml;
 
             // 绑定点击事件
-            document.querySelectorAll('.guild-card').forEach(card => {
+            document.querySelectorAll('.guide-card').forEach(card => {
                 card.addEventListener('click', () => {
                     const path = card.dataset.path;
                     loadWikiPage(path, null);
