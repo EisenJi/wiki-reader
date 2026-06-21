@@ -1594,10 +1594,13 @@
                 if (!contentFile) contentFile = zip.file(href);
                 if (!contentFile) continue;
                 
+                // Chapter-specific base path for resolving relative image paths
+                const chapterBase = path.substring(0, path.lastIndexOf('/') + 1);
+                
                 const content = await contentFile.async('text');
                 extractedChapters.push({
                     title: extractTitle(content) || href,
-                    content: cleanHtml(content, basePath, zip)
+                    content: cleanHtml(content, chapterBase, zip)
                 });
             }
             
@@ -1668,11 +1671,12 @@
                     if (imgFile) {
                         // Return placeholder with data-path for async loading later
                         return `<img data-epub-src="${imgPath}" alt="image" style="max-width:100%;" class="epub-img-loading">`;
-                    } else {
-                        // Image referenced but not in zip — keep original src so browser can try
-                        return match;
                     }
 
+                    // Image not in zip — try to resolve relative to chapter and rewrite src
+                    // Browser will resolve relative to current page (file://.../index.html)
+                    // We need to make it absolute or blob-based
+                    // For now, keep original src and let browser try (will fail for file://)
                     return match;
                 });
             }
