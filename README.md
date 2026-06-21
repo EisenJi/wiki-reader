@@ -48,9 +48,11 @@ Wiki Reader is a browser-based reading environment designed for deep, research-o
 
 1. Open `index.html` in a browser.
 2. Import an EPUB file and a wiki directory (`.md` files).
-3. Read the book on the left, browse wiki notes on the right.
-4. Click wikilinks to navigate between related wiki pages; use **Back** to return.
-5. Swap panels, adjust font size, or switch themes as needed.
+3. **Start reading.** The book appears on the left, wiki on the right.
+   - If your wiki contains a `guilds/` folder, the wiki panel will automatically show a **Guilds** card list for quick access.
+4. **Read the book on the left, browse wiki notes on the right.**
+5. Click wikilinks to navigate between related wiki pages; use **Back** to return.
+6. Swap panels, adjust font size, or switch themes as needed.
 
 ---
 
@@ -70,6 +72,7 @@ Wiki Reader is a browser-based reading environment designed for deep, research-o
 | **Responsive** | Mobile-friendly with media queries. |
 | **Keyboard shortcuts** | Escape to close modal. |
 | **Zero build step** | Pure HTML/CSS/JS; works directly in any modern browser. |
+| **Guild homepage** | Auto-detects `guilds/` directory and shows a card list for quick selection. |
 
 ---
 

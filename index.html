@@ -759,7 +759,52 @@
             background: none;
             color: var(--text-faint);
         }
-        
+
+        /* ============================================
+           GUILD LIST
+           ============================================ */
+        .guild-list {
+            padding: 24px 32px;
+        }
+
+        .guild-list h1 {
+            margin-bottom: 1em;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.4em;
+        }
+
+        .guild-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 16px;
+        }
+
+        .guild-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px 20px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .guild-card:hover {
+            border-color: var(--accent);
+            background: var(--bg-tertiary);
+        }
+
+        .guild-card h3 {
+            margin: 0 0 8px;
+            font-size: 1.1em;
+            color: var(--text-primary);
+        }
+
+        .guild-card .guild-filename {
+            margin: 0;
+            font-size: 0.85em;
+            color: var(--text-faint);
+        }
+
         /* ============================================
            EMPTY STATES
            ============================================ */
@@ -1383,6 +1428,13 @@
             if (savedWikiFiles) {
                 wikiFiles = savedWikiFiles;
                 renderWikiTree();
+
+                // 自动显示 guild 列表（如果存在）
+                const hasGuilds = Object.keys(wikiFiles).some(p => p.toLowerCase().startsWith('guilds/'));
+                if (hasGuilds) {
+                    renderGuildList();
+                }
+
                 updateStatus('Wiki restored from previous session', 'success');
             }
         }
@@ -1637,11 +1689,17 @@
             }
             
             renderWikiTree();
-            
+
             // Save to IndexedDB
             await saveToDB('wiki', 'files', fileData);
-            
+
             updateStatus('Wiki loaded: ' + Object.keys(wikiFiles).length + ' files', 'success');
+
+            // 自动显示 guild 列表（如果存在）
+            const hasGuilds = Object.keys(wikiFiles).some(p => p.toLowerCase().startsWith('guilds/'));
+            if (hasGuilds) {
+                renderGuildList();
+            }
         }
         
         function renderWikiTree() {
@@ -1711,15 +1769,15 @@
         async function loadWikiPage(path, element, skipHistory = false) {
             const file = wikiFiles[path];
             if (!file) return;
-            
+
             // Save to history
             if (!skipHistory && currentWikiPath && currentWikiPath !== path) {
                 wikiHistory.push(currentWikiPath);
                 if (wikiHistory.length > 50) wikiHistory.shift();
             }
-            
+
             currentWikiPath = path;
-            
+
             // Update active state in tree
             document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('active'));
             if (element) {
@@ -1735,7 +1793,7 @@
                     }
                 }
             }
-            
+
             // Render content
             const html = markdownToHtml(file.content);
             document.getElementById('wikiPanelTitle').textContent = file.name;
@@ -1753,6 +1811,62 @@
 
             // Auto-wrap sentences for TTS after render
             setTimeout(() => WikiTTS.wrap(), 50);
+        }
+
+        // ============================================
+        // GUILD LIST
+        // ============================================
+        function renderGuildList() {
+            const guildPaths = Object.keys(wikiFiles).filter(p =>
+                p.toLowerCase().startsWith('guilds/') && p.endsWith('.md')
+            );
+
+            if (guildPaths.length === 0) {
+                // 没有 guilds 目录，保持原有空白状态
+                document.getElementById('wikiContent').innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">📝</div>
+                        <h3>No Wiki Page</h3>
+                        <p>Select a file from the sidebar to view your notes.</p>
+                    </div>`;
+                return;
+            }
+
+            // 构建 guild 列表 HTML
+            let listHtml = '<div class="markdown-body guild-list"><h1>Guilds</h1><div class="guild-grid">';
+
+            for (const path of guildPaths) {
+                const file = wikiFiles[path];
+                // 从文件名提取 guild 名称（去掉 .md）
+                const guildName = file.name.replace(/\.md$/i, '');
+                // 尝试从内容提取第一行作为描述
+                const firstLine = file.content.split('\n')[0].replace(/^#\s*/, '').trim();
+                const displayName = firstLine || guildName;
+
+                listHtml += `
+                    <div class="guild-card" data-path="${path}">
+                        <h3>${displayName}</h3>
+                        <p class="guild-filename">${file.name}</p>
+                    </div>
+                `;
+            }
+
+            listHtml += '</div></div>';
+
+            document.getElementById('wikiPanelTitle').textContent = 'Guilds';
+            document.getElementById('wikiContent').innerHTML = listHtml;
+
+            // 绑定点击事件
+            document.querySelectorAll('.guild-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const path = card.dataset.path;
+                    loadWikiPage(path, null);
+                });
+            });
+
+            // 显示 wiki TTS 按钮（可选，因为列表页可能不需要 TTS，但保持按钮显示一致）
+            document.getElementById('btnWikiTTS').style.display = 'inline-flex';
+            document.getElementById('btnTTS').style.display = 'none';
         }
         
         function wikiGoBack() {
