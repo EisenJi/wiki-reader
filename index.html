@@ -1655,28 +1655,37 @@
 
             // Fix image paths: convert relative src to data URI
             if (zip && basePath) {
-                html = html.replace(/<img[^>]+src=["']([^"']+)["'][^>]*>/gi, (match, src) => {
+                html = html.replace(/<img[^>]*src=["']([^"']+)["'][^>]*>/gi, (match, src) => {
                     // Skip already absolute URLs
                     if (src.startsWith('http') || src.startsWith('data:')) return match;
 
                     // Resolve relative path
                     const imgPath = resolvePath(basePath, src);
+                    
+                    console.log('cleanHtml img:', {basePath, src, imgPath});
 
-                    // Try to find image in zip
+                    // Try to find image in zip (case-insensitive)
                     let imgFile = zip.file(imgPath);
+                    if (!imgFile) {
+                        // Try case-insensitive search
+                        const allFiles = Object.keys(zip.files);
+                        const found = allFiles.find(f => f.toLowerCase() === imgPath.toLowerCase());
+                        if (found) {
+                            imgFile = zip.file(found);
+                            console.log('  Found case-insensitive:', found);
+                        }
+                    }
                     if (!imgFile && imgPath.startsWith('/')) {
                         imgFile = zip.file(imgPath.substring(1));
                     }
 
                     if (imgFile) {
                         // Return placeholder with data-path for async loading later
+                        console.log('  Replacing with data-epub-src');
                         return `<img data-epub-src="${imgPath}" alt="image" style="max-width:100%;" class="epub-img-loading">`;
                     }
 
-                    // Image not in zip — try to resolve relative to chapter and rewrite src
-                    // Browser will resolve relative to current page (file://.../index.html)
-                    // We need to make it absolute or blob-based
-                    // For now, keep original src and let browser try (will fail for file://)
+                    console.log('  NOT found in zip, keeping original src');
                     return match;
                 });
             }
