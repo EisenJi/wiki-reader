@@ -1233,7 +1233,7 @@
             
             <!-- Wiki Panel -->
             <div class="panel wiki-panel" id="wikiPanel">
-                <div class="wiki-sidebar" id="wikiSidebar">
+                <div class="wiki-sidebar collapsed" id="wikiSidebar">
                     <div class="wiki-sidebar-header">
                         <h3>Files</h3>
                         <button class="sidebar-toggle" onclick="toggleWikiSidebar()" title="Toggle sidebar">
@@ -1263,6 +1263,7 @@
                             <span class="panel-title" id="wikiPanelTitle">No page selected</span>
                         </div>
                         <div class="panel-header-right">
+                            <button onclick="renderGuideList()" id="wikiHomeBtn" title="Guides" style="display:none;">⌂</button>
                             <button onclick="wikiGoBack()" id="wikiBackBtn" disabled title="Go back">← Back</button>
                             <button onclick="swapPanels()" title="Swap panels">⇄</button>
                         </div>
@@ -1802,6 +1803,10 @@
             // Update back button
             document.getElementById('wikiBackBtn').disabled = wikiHistory.length === 0;
 
+            // Show home button if guides exist
+            const hasGuides = Object.keys(wikiFiles).some(p => p.toLowerCase().includes('/guides/') || p.toLowerCase().startsWith('guides/'));
+            document.getElementById('wikiHomeBtn').style.display = hasGuides ? 'inline-block' : 'none';
+
             // Show wiki TTS button, hide book TTS button
             document.getElementById('btnWikiTTS').style.display = 'inline-flex';
             document.getElementById('btnTTS').style.display = 'none';
@@ -1840,9 +1845,16 @@
                 const file = wikiFiles[path];
                 // 从文件名提取 guide 名称（去掉 .md）
                 const guideName = file.name.replace(/\.md$/i, '');
-                // 尝试从内容提取第一行作为描述
-                const firstLine = file.content.split('\n')[0].replace(/^#\s*/, '').trim();
-                const displayName = firstLine || guideName;
+                // 尝试从内容提取第一个非空行且非 frontmatter 分隔符的行作为标题
+                let displayName = guideName;
+                const lines = file.content.split('\n');
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (trimmed && trimmed !== '---') {
+                        displayName = trimmed.replace(/^#\s*/, '').trim();
+                        break;
+                    }
+                }
 
                 listHtml += `
                     <div class="guide-card" data-path="${path}">
