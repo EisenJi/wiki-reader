@@ -1430,7 +1430,7 @@
                 renderWikiTree();
 
                 // 自动显示 guide 列表（如果存在）
-                const hasGuides = Object.keys(wikiFiles).some(p => p.toLowerCase().startsWith('guides/'));
+                const hasGuides = Object.keys(wikiFiles).some(p => p.toLowerCase().includes('/guides/') || p.toLowerCase().startsWith('guides/'));
                 if (hasGuides) {
                     renderGuideList();
                 }
@@ -1696,7 +1696,7 @@
             updateStatus('Wiki loaded: ' + Object.keys(wikiFiles).length + ' files', 'success');
 
             // 自动显示 guide 列表（如果存在）
-            const hasGuides = Object.keys(wikiFiles).some(p => p.toLowerCase().startsWith('guides/'));
+            const hasGuides = Object.keys(wikiFiles).some(p => p.toLowerCase().includes('/guides/') || p.toLowerCase().startsWith('guides/'));
             if (hasGuides) {
                 renderGuideList();
             }
@@ -1817,9 +1817,9 @@
         // GUIDE LIST
         // ============================================
         function renderGuideList() {
-            // 查找 guides/ 目录下的 markdown 文件
+            // 查找 guides/ 目录下的 markdown 文件（支持任意层级路径）
             let guidePaths = Object.keys(wikiFiles).filter(p =>
-                p.toLowerCase().startsWith('guides/') && p.endsWith('.md')
+                (p.toLowerCase().includes('/guides/') || p.toLowerCase().startsWith('guides/')) && p.endsWith('.md')
             );
 
             if (guidePaths.length === 0) {
