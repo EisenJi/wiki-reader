@@ -1634,6 +1634,9 @@
             if (relative.startsWith('http') || relative.startsWith('data:')) return relative;
             if (relative.startsWith('/')) return relative.substring(1);
 
+            // Handle paths like "../Images/xxx.jpg" from OEBPS/Text/xxx.html
+            // base = "OEBPS/Text/", relative = "../Images/LS1.jpg"
+            // Result should be "OEBPS/Images/LS1.jpg"
             const stack = base.split('/').filter(Boolean);
             const parts = relative.split('/');
             for (const part of parts) {
@@ -1715,10 +1718,28 @@
                 if (!path) continue;
 
                 try {
+                    // Try the path as-is first
                     let imgFile = epubZip.file(path);
+                    
+                    // If not found and path starts with '/', try without leading slash
                     if (!imgFile && path.startsWith('/')) {
                         imgFile = epubZip.file(path.substring(1));
                     }
+                    
+                    // If still not found, the path might be relative but resolved incorrectly
+                    // Try common EPUB image locations
+                    if (!imgFile) {
+                        const altPaths = [
+                            'OEBPS/' + path,
+                            'OPS/' + path,
+                            path.replace(/^\//, '')
+                        ];
+                        for (const alt of altPaths) {
+                            imgFile = epubZip.file(alt);
+                            if (imgFile) break;
+                        }
+                    }
+                    
                     if (!imgFile) {
                         console.warn('Image not found in zip:', path);
                         continue;
