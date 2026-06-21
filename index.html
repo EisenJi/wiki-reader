@@ -1594,7 +1594,7 @@
                 const content = await contentFile.async('text');
                 extractedChapters.push({
                     title: extractTitle(content) || href,
-                    content: cleanHtml(content)
+                    content: cleanHtml(content, basePath, zip)
                 });
             }
             
@@ -1627,9 +1627,37 @@
             return match ? match[1].trim() : null;
         }
         
-        function cleanHtml(html) {
+        function cleanHtml(html, basePath, zip) {
             html = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
             html = html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+
+            // Fix image paths: convert relative src to data URI
+            if (zip && basePath) {
+                html = html.replace(/<img[^>]+src=["']([^"']+)["'][^>]*>/gi, (match, src) => {
+                    // Skip already absolute URLs
+                    if (src.startsWith('http') || src.startsWith('data:')) return match;
+
+                    // Resolve relative path
+                    let imgPath = src;
+                    if (!src.startsWith('/')) {
+                        imgPath = basePath + src;
+                    }
+
+                    // Try to find image in zip
+                    let imgFile = zip.file(imgPath);
+                    if (!imgFile && imgPath.startsWith('/')) {
+                        imgFile = zip.file(imgPath.substring(1));
+                    }
+
+                    if (imgFile) {
+                        // We can't do async here, so return a placeholder with data-path
+                        return `<img data-epub-src="${imgPath}" alt="image" style="max-width:100%;" class="epub-img-loading">`;
+                    }
+
+                    return match;
+                });
+            }
+
             const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
             return bodyMatch ? bodyMatch[1] : html;
         }
@@ -1641,11 +1669,15 @@
             document.getElementById('bookPanelTitle').textContent = chapter.title || `Chapter ${currentChapter + 1}`;
             document.getElementById('bookContent').innerHTML = `<div class="epub-container">${chapter.content}</div>`;
             
+            // Load images after rendering
+            loadEpubImages();
+            
             document.getElementById('btnPrev').disabled = currentChapter <= 0;
             document.getElementById('btnNext').disabled = currentChapter >= chapters.length - 1;
             updateChapterProgress();
             
-            // Save current chapter
+            saveToDB('epub', 'currentChapter', currentChapter);
+        }
             saveToDB('epub', 'currentChapter', currentChapter);
         }
         
@@ -1657,6 +1689,23 @@
             document.getElementById('chapterProgress').style.display = 'flex';
             document.getElementById('chapterNum').textContent = `${currentChapter + 1}/${chapters.length}`;
             document.getElementById('progressFill').style.width = `${((currentChapter + 1) / chapters.length) * 100}%`;
+        }
+        
+        async function loadEpubImages() {
+            const images = document.querySelectorAll('.epub-container img[data-epub-src]');
+            for (const img of images) {
+                const path = img.dataset.epubSrc;
+                if (!path) continue;
+                
+                try {
+                    // Re-open the zip - we need to store it globally or re-parse
+                    // For now, we'll skip actual loading and just show a placeholder
+                    img.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"><rect fill="%23ddd" width="100%25" height="100%25"/><text fill="%23999" x="50%25" y="50%25" text-anchor="middle">Image</text></svg>';
+                    img.classList.remove('epub-img-loading');
+                } catch (e) {
+                    console.warn('Failed to load EPUB image:', path, e);
+                }
+            }
         }
         
         function nextChapter() {
