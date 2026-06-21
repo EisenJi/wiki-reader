@@ -1319,6 +1319,8 @@
         // ============================================
         let chapters = [];
         let currentChapter = 0;
+        let epubZip = null;
+        let epubImageUrls = [];
         let wikiFiles = {};
         let currentWikiPath = null;
         let wikiHistory = [];
@@ -1537,7 +1539,8 @@
             }
             
             const zip = await JSZip.loadAsync(file);
-            
+            epubZip = zip;
+
             const containerFile = zip.file('META-INF/container.xml');
             if (!containerFile) {
                 throw new Error('Invalid EPUB: container.xml not found');
@@ -1627,6 +1630,19 @@
             return match ? match[1].trim() : null;
         }
         
+        function resolvePath(base, relative) {
+            if (relative.startsWith('http') || relative.startsWith('data:')) return relative;
+            if (relative.startsWith('/')) return relative.substring(1);
+
+            const stack = base.split('/').filter(Boolean);
+            const parts = relative.split('/');
+            for (const part of parts) {
+                if (part === '..') stack.pop();
+                else if (part !== '.') stack.push(part);
+            }
+            return stack.join('/');
+        }
+
         function cleanHtml(html, basePath, zip) {
             html = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
             html = html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
@@ -1638,10 +1654,7 @@
                     if (src.startsWith('http') || src.startsWith('data:')) return match;
 
                     // Resolve relative path
-                    let imgPath = src;
-                    if (!src.startsWith('/')) {
-                        imgPath = basePath + src;
-                    }
+                    const imgPath = resolvePath(basePath, src);
 
                     // Try to find image in zip
                     let imgFile = zip.file(imgPath);
@@ -1664,6 +1677,10 @@
         
         function renderChapter() {
             if (!chapters.length) return;
+            
+            // Revoke old image URLs to prevent memory leaks
+            epubImageUrls.forEach(url => URL.revokeObjectURL(url));
+            epubImageUrls = [];
             
             const chapter = chapters[currentChapter];
             document.getElementById('bookPanelTitle').textContent = chapter.title || `Chapter ${currentChapter + 1}`;
@@ -1690,15 +1707,27 @@
         }
         
         async function loadEpubImages() {
+            if (!epubZip) return;
+
             const images = document.querySelectorAll('.epub-container img[data-epub-src]');
             for (const img of images) {
                 const path = img.dataset.epubSrc;
                 if (!path) continue;
-                
+
                 try {
-                    // Re-open the zip - we need to store it globally or re-parse
-                    // For now, we'll skip actual loading and just show a placeholder
-                    img.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"><rect fill="%23ddd" width="100%25" height="100%25"/><text fill="%23999" x="50%25" y="50%25" text-anchor="middle">Image</text></svg>';
+                    let imgFile = epubZip.file(path);
+                    if (!imgFile && path.startsWith('/')) {
+                        imgFile = epubZip.file(path.substring(1));
+                    }
+                    if (!imgFile) {
+                        console.warn('Image not found in zip:', path);
+                        continue;
+                    }
+
+                    const blob = await imgFile.async('blob');
+                    const url = URL.createObjectURL(blob);
+                    epubImageUrls.push(url);
+                    img.src = url;
                     img.classList.remove('epub-img-loading');
                 } catch (e) {
                     console.warn('Failed to load EPUB image:', path, e);
