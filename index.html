@@ -1666,8 +1666,11 @@
                     }
 
                     if (imgFile) {
-                        // We can't do async here, so return a placeholder with data-path
+                        // Return placeholder with data-path for async loading later
                         return `<img data-epub-src="${imgPath}" alt="image" style="max-width:100%;" class="epub-img-loading">`;
+                    } else {
+                        // Image referenced but not in zip — keep original src so browser can try
+                        return match;
                     }
 
                     return match;
