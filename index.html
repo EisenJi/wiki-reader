@@ -1958,24 +1958,24 @@ function toggleTTSMode() {
 
     <!-- TTS Floating Bar -->
     <div class="tts-bar" id="ttsBar">
-        <button onclick="if (TTS.state !== 'idle') { ttsPrev(); } else { wikiTtsPrev(); }" title="上一句">
+        <button onclick="if (TTS.state !== 'idle') { ttsPrev(); } else { wikiTtsPrev(); }" title="Previous sentence">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
-        <button onclick="if (TTS.state !== 'idle') { ttsTogglePlay(); } else { wikiTtsTogglePlay(); }" id="ttsPlayBtn" title="播放 / 暂停">
+        <button onclick="if (TTS.state !== 'idle') { ttsTogglePlay(); } else { wikiTtsTogglePlay(); }" id="ttsPlayBtn" title="Play / Pause">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" id="ttsIconPlay"><path d="M8 5v14l11-7z"/></svg>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" id="ttsIconPause" style="display:none"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/></svg>
         </button>
-        <button onclick="if (TTS.state !== 'idle') { ttsNext(); } else { wikiTtsNext(); }" title="下一句">
+        <button onclick="if (TTS.state !== 'idle') { ttsNext(); } else { wikiTtsNext(); }" title="Next sentence">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
         <div class="tts-sep"></div>
         <div class="tts-speed">
-            <button onclick="if (TTS.state !== 'idle') { ttsSetSpeed(0.75); } else { wikiTtsSetSpeed(0.75); }" id="ttsSpeedSlow" title="慢速">慢</button>
-            <button onclick="if (TTS.state !== 'idle') { ttsSetSpeed(1); } else { wikiTtsSetSpeed(1); }" id="ttsSpeedNormal" class="active" title="正常">常</button>
-            <button onclick="if (TTS.state !== 'idle') { ttsSetSpeed(1.5); } else { wikiTtsSetSpeed(1.5); }" id="ttsSpeedFast" title="快速">快</button>
+            <button onclick="if (TTS.state !== 'idle') { ttsSetSpeed(0.75); } else { wikiTtsSetSpeed(0.75); }" id="ttsSpeedSlow" title="0.75x">0.75x</button>
+            <button onclick="if (TTS.state !== 'idle') { ttsSetSpeed(1); } else { wikiTtsSetSpeed(1); }" id="ttsSpeedNormal" class="active" title="1x">1x</button>
+            <button onclick="if (TTS.state !== 'idle') { ttsSetSpeed(1.5); } else { wikiTtsSetSpeed(1.5); }" id="ttsSpeedFast" title="1.5x">1.5x</button>
         </div>
         <div class="tts-sep"></div>
-        <button onclick="if (TTS.state !== 'idle') { ttsStop(); } else { wikiTtsStop(); }" title="停止">
+        <button onclick="if (TTS.state !== 'idle') { ttsStop(); } else { wikiTtsStop(); }" title="Stop">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg>
         </button>
     </div>
