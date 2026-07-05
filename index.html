@@ -5,1158 +5,376 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wiki Reader</title>
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-    <style>
-        /* ============================================
-           CSS VARIABLES - THEME SYSTEM
-           ============================================ */
+    <!-- SVG Icon Sprite -->
+    <svg style="display:none;" xmlns="http://www.w3.org/2000/svg">
+        <symbol id="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></symbol>
+        <symbol id="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></symbol>
+        <symbol id="icon-scroll" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></symbol>
+        <symbol id="icon-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></symbol>
+        <symbol id="icon-file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></symbol>
+        <symbol id="icon-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></symbol>
+        <symbol id="icon-folder-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><path d="M2 9h20"/></symbol>
+        <symbol id="icon-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></symbol>
+        <symbol id="icon-import" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></symbol>
+        <symbol id="icon-chevron-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></symbol>
+        <symbol id="icon-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></symbol>
+        <symbol id="icon-chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></symbol>
+        <symbol id="icon-sidebar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></symbol>
+        <symbol id="icon-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></symbol>
+        <symbol id="icon-arrow-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></symbol>
+        <symbol id="icon-swap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 16 17 16 17 9"/><polyline points="17 8 17 1 7 1"/><polyline points="7 20 7 13 17 13" transform="rotate(180 12 13)"/></symbol>
+        <symbol id="icon-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></symbol>
+        <symbol id="icon-pause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></symbol>
+        <symbol id="icon-stop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12"/></symbol>
+        <symbol id="icon-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+        <symbol id="icon-inbox" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></symbol>
+    </svg>
+        <style>
         :root {
-            /* Dark theme (default) */
-            --bg-primary: #1a1a1a;
-            --bg-secondary: #252525;
-            --bg-tertiary: #2a2a2a;
-            --bg-panel: #1e1e1e;
-            --text-primary: #e0e0e0;
-            --text-secondary: #b0b0b0;
-            --text-muted: #888;
-            --text-faint: #666;
-            --border: #333;
-            --border-light: #3a3a3a;
-            --accent: #6b9fb9;
-            --accent-hover: #7ab8d4;
-            --success: #4a7c59;
-            --danger: #c75b5b;
-            --warning: #d4a373;
-            --link: #6b9fb9;
-            --selection: rgba(107, 159, 185, 0.3);
-            --shadow: rgba(0,0,0,0.3);
-            --tts-highlight: rgba(255, 215, 0, 0.25);
-            
-            /* Typography - research-backed defaults */
+            --bg-primary: #141414;
+            --bg-secondary: rgba(30, 30, 30, 0.85);
+            --bg-tertiary: rgba(45, 45, 45, 0.8);
+            --bg-panel: #181818;
+            --text-primary: #f2f2f2;
+            --text-secondary: #c8c8c8;
+            --text-muted: #8f8f8f;
+            --text-faint: #6a6a6a;
+            --border: rgba(255,255,255,0.08);
+            --border-light: rgba(255,255,255,0.12);
+            --accent: #5fa3c0;
+            --accent-hover: #7abdd9;
+            --success: #5fb86b;
+            --danger: #e85d5d;
+            --warning: #e2a86b;
+            --link: #5fa3c0;
+            --selection: rgba(95, 163, 192, 0.25);
+            --shadow: rgba(0,0,0,0.45);
+            --tts-highlight: rgba(255, 207, 86, 0.22);
+
             --font-body: Georgia, "Times New Roman", serif;
-            --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
             --font-mono: "SF Mono", Monaco, "Cascadia Code", monospace;
             --font-size-base: 18px;
             --line-height: 1.7;
-            --max-width: 700px;
-            
-            /* Spacing */
-            --toolbar-height: 40px;
-            --panel-header-height: 36px;
-            --status-height: 22px;
+            --max-width: 680px;
+
+            --toolbar-height: 44px;
+            --panel-header-height: 38px;
+            --status-height: 24px;
+            --radius: 8px;
+            --radius-lg: 12px;
         }
-        
+
         [data-theme="light"] {
             --bg-primary: #f5f5f0;
-            --bg-secondary: #e8e8e0;
-            --bg-tertiary: #ddd;
-            --bg-panel: #fff;
-            --text-primary: #2a2a2a;
+            --bg-secondary: rgba(255, 255, 255, 0.82);
+            --bg-tertiary: rgba(235, 235, 230, 0.8);
+            --bg-panel: #fafaf8;
+            --text-primary: #1a1a1a;
             --text-secondary: #444;
-            --text-muted: #666;
+            --text-muted: #6e6e6e;
             --text-faint: #999;
-            --border: #ccc;
-            --border-light: #ddd;
+            --border: rgba(0,0,0,0.08);
+            --border-light: rgba(0,0,0,0.12);
             --accent: #2563eb;
             --accent-hover: #3b82f6;
             --success: #16a34a;
             --danger: #dc2626;
             --warning: #d97706;
             --link: #2563eb;
-            --selection: rgba(37, 99, 235, 0.2);
-            --shadow: rgba(0,0,0,0.08);
-            --tts-highlight: rgba(255, 193, 7, 0.3);
+            --selection: rgba(37, 99, 235, 0.18);
+            --shadow: rgba(0,0,0,0.12);
+            --tts-highlight: rgba(255, 183, 0, 0.25);
         }
-        
+
         [data-theme="sepia"] {
             --bg-primary: #f4ecd8;
-            --bg-secondary: #e8dfc8;
-            --bg-tertiary: #ddd5c0;
-            --bg-panel: #fdf6e3;
+            --bg-secondary: rgba(253, 246, 227, 0.85);
+            --bg-tertiary: rgba(232, 223, 200, 0.8);
+            --bg-panel: #fbf5e7;
             --text-primary: #433422;
             --text-secondary: #5c4a3a;
             --text-muted: #7a6b5a;
-            --text-faint: #9a8b7a;
-            --border: #d4c9b0;
-            --border-light: #ddd5c0;
+            --text-faint: #a8987a;
+            --border: rgba(67, 52, 34, 0.1);
+            --border-light: rgba(67, 52, 34, 0.14);
             --accent: #8b6914;
             --accent-hover: #a07d2a;
             --success: #5a7c4a;
             --danger: #a05050;
             --warning: #b89040;
             --link: #8b6914;
-            --selection: rgba(139, 105, 20, 0.2);
-            --shadow: rgba(67, 52, 34, 0.1);
-            --tts-highlight: rgba(255, 183, 77, 0.35);
+            --selection: rgba(139, 105, 20, 0.18);
+            --shadow: rgba(67, 52, 34, 0.14);
+            --tts-highlight: rgba(255, 183, 77, 0.28);
         }
-        
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+
+        html, body {
+            height: 100vh;
+            overflow: hidden;
+        }
+
         body {
             font-family: var(--font-ui);
             background: var(--bg-primary);
             color: var(--text-primary);
-            height: 100vh;
-            overflow: hidden;
-            transition: background 0.3s, color 0.3s;
+            transition: background 0.35s cubic-bezier(0.4, 0, 0.2, 1), color 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
-        
-        /* ============================================
-           APP LAYOUT
-           ============================================ */
-        .app {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
+
+        .icon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; pointer-events: none; }
+        .icon-empty { color: var(--text-faint); opacity: 0.85; margin-bottom: 12px; }
+
+        .app { display: flex; flex-direction: column; height: 100vh; }
+
+        .reading-progress {
+            position: fixed; top: 0; right: 0; width: 3px; height: 100vh;
+            background: transparent; z-index: 50; pointer-events: none;
         }
-        
-        /* ============================================
-           MINIMAL TOOLBAR
-           ============================================ */
+        .reading-progress-fill {
+            width: 100%; height: 0%; background: var(--accent);
+            transition: height 0.15s linear; opacity: 0.85;
+        }
+
         .toolbar {
             height: var(--toolbar-height);
             background: var(--bg-secondary);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            padding: 0 12px;
-            gap: 6px;
-            flex-shrink: 0;
-            justify-content: space-between;
+            display: flex; align-items: center; padding: 0 14px; gap: 8px;
+            flex-shrink: 0; justify-content: space-between;
+            z-index: 10;
         }
-        
-        .toolbar-left, .toolbar-right {
-            display: flex;
-            align-items: center;
-            gap: 4px;
+        .toolbar-left, .toolbar-right { display: flex; align-items: center; gap: 6px; }
+
+        .toolbar button, .panel-header-right button, .sidebar-toggle, .wiki-sidebar-header button {
+            background: transparent; border: 1px solid transparent;
+            color: var(--text-muted); padding: 5px 10px; border-radius: 6px;
+            cursor: pointer; font-size: 13px; font-family: var(--font-ui);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+            min-height: 28px;
         }
-        
-        .toolbar button {
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            padding: 4px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 13px;
-            transition: all 0.15s ease;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            position: relative;
-        }
-        
-        .toolbar button::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            width: 0;
-            height: 2px;
-            background: var(--accent);
-            transition: all 0.15s ease;
-            transform: translateX(-50%);
-            border-radius: 1px;
-        }
-        
-        .toolbar button:hover::after {
-            width: 60%;
-        }
-        
-        .toolbar button:hover {
+        .toolbar button:hover, .panel-header-right button:hover, .sidebar-toggle:hover {
             background: var(--bg-tertiary);
-            color: var(--text-primary);
+            color: var(--text-primary); border-color: var(--border-light);
         }
-        
-        .toolbar button:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
+        .toolbar button:active, .panel-header-right button:active, .sidebar-toggle:active {
+            transform: scale(0.96);
         }
-        
-        .toolbar .separator {
-            width: 1px;
-            height: 16px;
-            background: var(--border);
-            margin: 0 4px;
+        .toolbar button:disabled, .panel-header-right button:disabled {
+            opacity: 0.35; cursor: not-allowed; pointer-events: none;
         }
-        
+
+        .toolbar .separator, .panel-header .separator {
+            width: 1px; height: 18px; background: var(--border); margin: 0 2px;
+        }
         .toolbar .book-title {
-            font-size: 13px;
-            color: var(--text-muted);
-            max-width: 300px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            font-size: 13px; font-weight: 500; color: var(--text-secondary);
+            max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            letter-spacing: -0.01em;
         }
-        
-        /* Font size controls */
-        .font-size-control {
-            display: flex;
-            align-items: center;
-            gap: 2px;
-        }
-        
-        .font-size-control button {
-            font-family: var(--font-ui);
-            font-weight: 600;
-            padding: 2px 8px;
-            min-width: 28px;
-            justify-content: center;
-        }
-        
-        .font-size-control .size-label {
-            font-size: 11px;
-            color: var(--text-faint);
-            min-width: 28px;
-            text-align: center;
-        }
-        
-        /* Theme toggle */
-        .theme-toggle {
-            display: flex;
-            gap: 2px;
-            background: var(--bg-tertiary);
-            border-radius: 4px;
-            padding: 2px;
-        }
-        
-        .theme-toggle button {
-            padding: 2px 8px;
-            font-size: 12px;
-            border-radius: 3px;
-        }
-        
-        .theme-toggle button.active {
-            background: var(--accent);
-            color: #fff;
-        }
-        
-        /* ============================================
-           SPLIT VIEW
-           ============================================ */
-        .split-view {
-            flex: 1;
-            display: flex;
-            overflow: hidden;
-            min-height: 0;
-        }
-        
+
+        .font-size-control { display: flex; align-items: center; gap: 3px; }
+        .font-size-control button { font-weight: 700; padding: 4px 8px; min-width: 26px; color: var(--text-faint); }
+        .font-size-control button:hover { color: var(--text-primary); }
+        .font-size-control .size-label { font-size: 11px; color: var(--text-faint); min-width: 30px; text-align: center; font-variant-numeric: tabular-nums; }
+
+        .theme-toggle { display: flex; gap: 3px; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 20px; padding: 2px; }
+        .theme-toggle button { padding: 4px 9px; border-radius: 16px; color: var(--text-faint); border: 1px solid transparent; }
+        .theme-toggle button.active { background: var(--accent); color: #fff; box-shadow: 0 1px 4px var(--shadow); }
+
+        .split-view { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+
         .panel {
-            flex: 1;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            background: var(--bg-panel);
-            min-width: 280px;
-            position: relative;
+            flex: 1; overflow: hidden; display: flex; flex-direction: column;
+            background: var(--bg-panel); min-width: 260px; position: relative;
         }
-        
-        /* Panel header */
+
         .panel-header {
             height: var(--panel-header-height);
             background: var(--bg-secondary);
+            backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
             border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            padding: 0 10px;
-            gap: 8px;
-            flex-shrink: 0;
-            justify-content: space-between;
+            display: flex; align-items: center; padding: 0 12px; gap: 8px;
+            flex-shrink: 0; justify-content: space-between;
         }
-        
-        .panel-header-left {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            flex: 1;
-            min-width: 0;
-        }
-        
-        .panel-header .panel-title {
-            font-size: 12px;
-            color: var(--text-muted);
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            font-weight: 500;
-        }
-        
-        .panel-header .panel-type {
-            font-size: 10px;
-            color: var(--text-faint);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            background: var(--bg-tertiary);
-            padding: 1px 6px;
-            border-radius: 3px;
-            flex-shrink: 0;
-        }
-        
-        .panel-header-right {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            flex-shrink: 0;
-        }
-        
-        .panel-header-right button {
-            background: transparent;
-            border: none;
-            color: var(--text-faint);
-            padding: 2px 6px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 11px;
-            transition: all 0.15s;
-        }
-        
-        .panel-header-right button:hover {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-        }
-        
-        .panel-header-right button:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-        }
-        
-        /* Panel content */
-        .panel-content {
-            flex: 1;
-            overflow-y: auto;
-            position: relative;
-        }
-        
-        /* Divider */
+        .panel-header-left, .panel-header-right { display: flex; align-items: center; gap: 6px; }
+        .panel-header-left { flex: 1; min-width: 0; }
+        .panel-header .panel-title { font-size: 12px; font-weight: 500; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .panel-header .panel-type { font-size: 10px; font-weight: 600; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.6px; background: var(--bg-tertiary); padding: 2px 7px; border-radius: 4px; border: 1px solid var(--border); flex-shrink: 0; }
+        .panel-header-right button { padding: 4px 8px; font-size: 12px; color: var(--text-faint); }
+        .panel-header-right button:hover { color: var(--text-primary); }
+
+        .panel-content { flex: 1; overflow-y: auto; position: relative; }
+
         .panel-divider {
-            width: 3px;
-            background: var(--border);
-            cursor: col-resize;
-            position: relative;
-            flex-shrink: 0;
-            transition: background 0.15s;
+            width: 5px; background: var(--border); cursor: col-resize; position: relative;
+            flex-shrink: 0; transition: background 0.2s;
         }
-        
-        .panel-divider:hover {
-            background: var(--accent);
-        }
-        
+        .panel-divider:hover { background: var(--accent); }
         .panel-divider::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 1px;
-            height: 20px;
-            background: var(--text-faint);
-            opacity: 0.5;
+            content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 1px; height: 28px; background: var(--text-faint); opacity: 0.35; border-radius: 1px;
         }
-        
-        /* ============================================
-           WIKI PANEL - INTEGRATED FILE TREE
-           ============================================ */
-        .wiki-panel {
-            display: flex;
-            flex-direction: row;
-            overflow: hidden;
-        }
-        
-        .wiki-main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            min-width: 0;
-        }
-        
+
+        .wiki-panel { display: flex; flex-direction: row; overflow: hidden; }
+        .wiki-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
         .wiki-sidebar {
-            width: 220px;
-            min-width: 160px;
-            max-width: 320px;
-            background: var(--bg-secondary);
-            border-right: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            resize: horizontal;
-            flex-shrink: 0;
-            transition: width 0.2s ease, opacity 0.2s ease, margin 0.2s ease;
+            width: 220px; min-width: 170px; max-width: 340px;
+            background: var(--bg-secondary); border-right: 1px solid var(--border);
+            display: flex; flex-direction: column; overflow: hidden; resize: horizontal; flex-shrink: 0;
+            transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.22s;
             order: -1;
         }
-        
-        .wiki-sidebar.collapsed {
-            width: 0 !important;
-            min-width: 0 !important;
-            border-right: none;
-            opacity: 0;
-            overflow: hidden;
-            margin-right: 0;
-        }
-        
+        .wiki-sidebar.collapsed { width: 0 !important; min-width: 0 !important; border-right: none; opacity: 0; overflow: hidden; }
         .wiki-sidebar-header {
-            padding: 8px 12px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            height: var(--panel-header-height); padding: 0 12px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
         }
-        
-        .wiki-sidebar-header h3 {
-            font-size: 11px;
-            font-weight: 600;
-            color: var(--text-faint);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .wiki-sidebar-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 4px 0;
-        }
-        
-        /* Sidebar toggle button */
-        .sidebar-toggle {
-            background: transparent;
-            border: none;
-            color: var(--text-faint);
-            padding: 2px 4px;
-            border-radius: 3px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.15s;
-        }
-        
-        .sidebar-toggle:hover {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-        }
-        
-        /* Tree items */
+        .wiki-sidebar-header h3 { font-size: 11px; font-weight: 600; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.8px; }
+        .wiki-sidebar-content { flex: 1; overflow-y: auto; padding: 6px 0; }
+
         .tree-item {
-            padding: 4px 12px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 12px;
-            transition: background 0.1s;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            user-select: none;
-            color: var(--text-secondary);
+            padding: 5px 12px; cursor: pointer; display: flex; align-items: center; gap: 7px;
+            font-size: 12px; transition: background 0.12s; white-space: nowrap; overflow: hidden;
+            text-overflow: ellipsis; user-select: none; color: var(--text-secondary); border-radius: 0 4px 4px 0;
+            margin: 0 6px;
         }
-        
-        .tree-item:hover {
-            background: var(--bg-tertiary);
-        }
-        
-        .tree-item.active {
-            background: var(--accent);
-            color: #fff;
-        }
-        
-        .tree-item.active .icon {
-            color: #fff;
-        }
-        
-        .tree-item.directory {
-            font-weight: 500;
-            color: var(--text-muted);
-        }
-        
-        .tree-item.file {
-            padding-left: 24px;
-        }
-        
-        .tree-item .icon {
-            font-size: 10px;
-            flex-shrink: 0;
-            color: var(--text-faint);
-        }
-        
-        .tree-item.directory .icon {
-            color: var(--warning);
-        }
-        
-        .tree-item.file .icon {
-            color: var(--accent);
-        }
-        
-        /* Wiki content area */
-        .wiki-content-area {
-            flex: 1;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            min-width: 0;
-        }
-        
-        .wiki-content-area .panel-content {
-            flex: 1;
-            overflow-y: auto;
-        }
-        
-        /* ============================================
-           EPUB READING - RESEARCH-BACKED TYPOGRAPHY
-           ============================================ */
+        .tree-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .tree-item.active { background: var(--accent); color: #fff; }
+        .tree-item.active .icon { color: #fff; }
+        .tree-item.directory { font-weight: 500; color: var(--text-muted); }
+        .tree-item.file { padding-left: 24px; }
+        .tree-item .icon { color: var(--text-faint); }
+        .tree-item.directory .icon { color: var(--warning); }
+        .tree-item.file .icon { color: var(--accent); }
+
+        .wiki-content-area { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+        .wiki-content-area .panel-content { flex: 1; overflow-y: auto; }
+
         .epub-container {
-            max-width: var(--max-width);
-            margin: 0 auto;
-            padding: 32px 40px;
-            font-family: var(--font-body);
-            font-size: var(--font-size-base);
-            line-height: var(--line-height);
-            color: var(--text-primary);
+            max-width: var(--max-width); margin: 0 auto; padding: 36px 44px;
+            font-family: var(--font-body); font-size: var(--font-size-base);
+            line-height: var(--line-height); color: var(--text-primary);
         }
-        
-        .epub-container h1 {
-            font-family: var(--font-ui);
-            font-size: 1.8em;
-            font-weight: 700;
-            margin: 0 0 0.8em;
-            line-height: 1.3;
-            color: var(--text-primary);
-            letter-spacing: -0.01em;
-        }
-        
-        .epub-container h2 {
-            font-family: var(--font-ui);
-            font-size: 1.4em;
-            font-weight: 600;
-            margin: 1.5em 0 0.6em;
-            line-height: 1.3;
-            color: var(--text-primary);
-        }
-        
-        .epub-container h3 {
-            font-family: var(--font-ui);
-            font-size: 1.15em;
-            font-weight: 600;
-            margin: 1.3em 0 0.5em;
-            color: var(--text-secondary);
-        }
-        
-        .epub-container p {
-            margin: 0 0 1em;
-            text-align: justify;
-            hyphens: auto;
-            word-break: normal;
-            overflow-wrap: break-word;
-            padding: 2px 8px;
-            margin-left: -8px;
-            margin-right: -8px;
-            border-radius: 4px;
-            transition: background-color 0.15s ease;
-        }
-        
-        /* Micro-interaction: paragraph hover highlight */
-        @media (hover: hover) {
-            .epub-container p:hover {
-                background-color: rgba(107, 159, 185, 0.04);
-            }
-        }
-        
-        .epub-container blockquote {
-            margin: 1.2em 0;
-            padding: 0.5em 0 0.5em 1.2em;
-            border-left: 3px solid var(--accent);
-            color: var(--text-secondary);
-            font-style: italic;
-        }
-        
-        .epub-container img {
-            max-width: 100%;
-            height: auto;
-            display: block;
-            margin: 1em auto;
-        }
-        
-        .epub-container a {
-            color: var(--link);
-            text-decoration: underline;
-            text-underline-offset: 2px;
-        }
-        
-        .epub-container sup, .epub-container sub {
-            font-size: 0.75em;
-            line-height: 0;
-        }
-        
-        .epub-container hr {
-            border: none;
-            border-top: 1px solid var(--border);
-            margin: 2em 0;
-        }
-        
-        /* ============================================
-           READING PROGRESS INDICATOR
-           ============================================ */
-        .reading-progress {
-            position: fixed;
-            right: 0;
-            top: 0;
-            width: 2px;
-            height: 100%;
-            background: var(--border);
-            z-index: 1000;
-            pointer-events: none;
-        }
-        
-        .reading-progress-fill {
-            width: 100%;
-            background: var(--accent);
-            opacity: 0.3;
-            transition: height 0.3s ease-out;
-        }
-        
-        /* ============================================
-           MARKDOWN RENDERING
-           ============================================ */
-        .markdown-body {
-            max-width: var(--max-width);
-            margin: 0 auto;
-            padding: 24px 32px;
-            font-family: var(--font-ui);
-            font-size: 15px;
-            line-height: 1.65;
-            color: var(--text-primary);
-        }
-        
-        .markdown-body h1 {
-            font-size: 1.6em;
-            font-weight: 700;
-            margin: 0 0 0.6em;
-            padding-bottom: 0.4em;
-            border-bottom: 1px solid var(--border);
-            color: var(--text-primary);
-        }
-        
-        .markdown-body h2 {
-            font-size: 1.25em;
-            font-weight: 600;
-            margin: 1.4em 0 0.5em;
-            color: var(--text-primary);
-        }
-        
-        .markdown-body h3 {
-            font-size: 1.1em;
-            font-weight: 600;
-            margin: 1.2em 0 0.4em;
-            color: var(--text-secondary);
-        }
-        
-        .markdown-body p {
-            margin: 0 0 0.8em;
-        }
-        
-        .markdown-body a {
-            color: var(--link);
-            text-decoration: none;
-        }
-        
-        .markdown-body a:hover {
-            text-decoration: underline;
-        }
-        
-        .markdown-body ul, .markdown-body ol {
-            margin: 0 0 0.8em;
-            padding-left: 1.8em;
-        }
-        
-        .markdown-body li {
-            margin: 0 0 0.2em;
-        }
-        
-        .markdown-body blockquote {
-            border-left: 3px solid var(--accent);
-            margin: 1em 0;
-            padding: 0.3em 0 0.3em 1em;
-            color: var(--text-secondary);
-            font-style: italic;
-        }
-        
-        .markdown-body code {
-            background: var(--bg-tertiary);
-            padding: 1px 4px;
-            border-radius: 3px;
-            font-family: var(--font-mono);
-            font-size: 0.85em;
-            color: var(--accent);
-        }
-        
-        .markdown-body pre {
-            background: var(--bg-secondary);
-            padding: 12px 16px;
-            border-radius: 6px;
-            overflow-x: auto;
-            margin: 0.8em 0;
-            border: 1px solid var(--border);
-        }
-        
-        .markdown-body pre code {
-            background: none;
-            padding: 0;
-            color: var(--text-primary);
-        }
-        
-        .markdown-body hr {
-            border: none;
-            border-top: 1px solid var(--border);
-            margin: 1.5em 0;
-        }
-        
-        .markdown-body table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 0.8em 0;
-            font-size: 0.9em;
-        }
-        
-        .markdown-body th, .markdown-body td {
-            border: 1px solid var(--border);
-            padding: 6px 10px;
-            text-align: left;
-        }
-        
-        .markdown-body th {
-            background: var(--bg-secondary);
-            font-weight: 600;
-        }
-        
-        .markdown-body tr:nth-child(even) {
-            background: var(--bg-secondary);
-            opacity: 0.5;
-        }
-        
-        .markdown-body .wikilink {
-            color: var(--link);
-            cursor: pointer;
-            border-bottom: 1px dashed var(--link);
-        }
-        
-        .markdown-body .wikilink:hover {
-            background: var(--selection);
-            text-decoration: none;
-        }
-        
-        /* YAML frontmatter styling */
-        .markdown-body .frontmatter {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            padding: 8px 12px;
-            margin: 0 0 1em;
-            font-size: 0.85em;
-            color: var(--text-muted);
-            font-family: var(--font-mono);
-        }
-        
-        .markdown-body .frontmatter code {
-            background: none;
-            color: var(--text-faint);
-        }
+        .epub-container h1 { font-family: var(--font-ui); font-size: 1.75em; font-weight: 700; margin: 0 0 0.7em; line-height: 1.25; color: var(--text-primary); letter-spacing: -0.02em; }
+        .epub-container h2 { font-family: var(--font-ui); font-size: 1.4em; font-weight: 600; margin: 1.4em 0 0.55em; line-height: 1.3; color: var(--text-primary); }
+        .epub-container h3 { font-family: var(--font-ui); font-size: 1.12em; font-weight: 600; margin: 1.2em 0 0.5em; color: var(--text-secondary); }
+        .epub-container p { margin: 0 0 1em; text-align: justify; hyphens: auto; word-break: normal; overflow-wrap: break-word; }
+        @media (hover: hover) { .epub-container p:hover { background: var(--selection); border-radius: 3px; } }
+        .epub-container blockquote { margin: 1.2em 0; padding: 0.5em 0 0.5em 1.2em; border-left: 3px solid var(--accent); color: var(--text-secondary); font-style: italic; }
+        .epub-container img { max-width: 100%; height: auto; display: block; margin: 1em auto; }
+        .epub-container a { color: var(--link); text-decoration: underline; text-underline-offset: 3px; }
+        .epub-container sup, .epub-container sub { font-size: 0.75em; line-height: 0; }
+        .epub-container hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
 
-        /* ============================================
-           GUIDE LIST
-           ============================================ */
-        .guide-list {
-            padding: 24px 32px;
-        }
-
-        .guide-list h1 {
-            margin-bottom: 1em;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 0.4em;
-        }
-
-        .guide-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-            gap: 16px;
-        }
-
-        .guide-card {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 16px 20px;
-            cursor: pointer;
-            transition: all 0.15s ease;
-        }
-
-        .guide-card:hover {
-            border-color: var(--accent);
-            background: var(--bg-tertiary);
-        }
-
-        .guide-card h3 {
-            margin: 0 0 8px;
-            font-size: 1.1em;
-            color: var(--text-primary);
-        }
-
-        .guide-card .guide-filename {
-            margin: 0;
-            font-size: 0.85em;
-            color: var(--text-faint);
-        }
-
-        /* ============================================
-           EMPTY STATES
-           ============================================ */
         .empty-state {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            color: var(--text-faint);
-            text-align: center;
-            padding: 40px;
+            height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; padding: 40px; color: var(--text-muted); gap: 10px;
         }
-        
-        .empty-state .icon {
-            font-size: 40px;
-            margin-bottom: 12px;
-            opacity: 0.4;
-        }
-        
-        .empty-state h3 {
-            font-size: 15px;
-            font-weight: 500;
-            margin-bottom: 6px;
-            color: var(--text-muted);
-        }
-        
-        .empty-state p {
-            font-size: 12px;
-            color: var(--text-faint);
-            max-width: 260px;
-            line-height: 1.5;
-        }
-        
-        .empty-state button {
-            margin-top: 16px;
-            padding: 8px 20px;
-            background: var(--accent);
-            color: #fff;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 13px;
-        }
-        
-        .empty-state button:hover {
-            background: var(--accent-hover);
-        }
-        
-        /* ============================================
-           IMPORT MODAL
-           ============================================ */
-        .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.6);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            backdrop-filter: blur(4px);
-        }
-        
-        .modal-overlay.active { display: flex; }
-        
-        .modal {
-            background: var(--bg-panel);
-            border-radius: 8px;
-            width: 460px;
-            max-width: 90vw;
-            border: 1px solid var(--border);
-            box-shadow: 0 8px 32px var(--shadow);
-        }
-        
-        .modal-header {
-            padding: 14px 18px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .modal-header h3 {
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-        
-        .modal-close {
-            background: none;
-            border: none;
-            color: var(--text-faint);
-            font-size: 20px;
-            cursor: pointer;
-            padding: 0;
-            width: 28px;
-            height: 28px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 4px;
-            transition: all 0.15s;
-        }
-        
-        .modal-close:hover {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-        }
-        
-        .modal-body { padding: 18px; }
-        
-        .form-group { margin-bottom: 14px; }
-        
-        .form-group label {
-            display: block;
-            font-size: 11px;
-            font-weight: 600;
-            color: var(--text-muted);
-            margin-bottom: 5px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .form-group input[type="file"],
-        .form-group input[type="text"] {
-            width: 100%;
-            padding: 8px 10px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            color: var(--text-primary);
-            font-size: 13px;
-        }
-        
-        .form-group input[type="file"]::file-selector-button {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border);
-            color: var(--text-secondary);
-            padding: 3px 10px;
-            border-radius: 3px;
-            cursor: pointer;
-            margin-right: 10px;
-        }
-        
-        .form-group .hint {
-            font-size: 11px;
-            color: var(--text-faint);
-            margin-top: 3px;
-        }
-        
-        .modal-footer {
-            padding: 14px 18px;
-            border-top: 1px solid var(--border);
-            display: flex;
-            justify-content: flex-end;
-            gap: 8px;
-        }
-        
-        .modal-footer button {
-            padding: 7px 14px;
-            border-radius: 4px;
-            font-size: 13px;
-            cursor: pointer;
-            border: 1px solid var(--border);
-            background: var(--bg-secondary);
-            color: var(--text-secondary);
-            transition: all 0.15s;
-        }
-        
-        .modal-footer button:hover {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-        }
-        
-        .modal-footer button.primary {
-            background: var(--accent);
-            border-color: var(--accent);
-            color: #fff;
-        }
-        
-        .modal-footer button.primary:hover {
-            background: var(--accent-hover);
-        }
-        
-        /* ============================================
-           STATUS BAR
-           ============================================ */
+        .empty-state h3 { font-size: 16px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; }
+        .empty-state p { font-size: 13px; color: var(--text-faint); max-width: 280px; line-height: 1.5; margin: 0; }
+        .empty-state button { margin-top: 10px; padding: 7px 16px; border-radius: 6px; border: 1px solid var(--border); background: var(--accent); color: #fff; font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.2s, transform 0.15s; }
+        .empty-state button:hover { background: var(--accent-hover); transform: translateY(-1px); }
+
         .status-bar {
-            height: var(--status-height);
-            background: var(--bg-secondary);
-            border-top: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            padding: 0 12px;
-            font-size: 11px;
-            color: var(--text-faint);
-            gap: 12px;
-            flex-shrink: 0;
+            height: var(--status-height); background: var(--bg-secondary); border-top: 1px solid var(--border);
+            display: flex; align-items: center; padding: 0 14px; font-size: 11px; color: var(--text-faint); flex-shrink: 0;
         }
-        
-        .status-bar .status-success { color: var(--success); }
-        .status-bar .status-error { color: var(--danger); }
-        .status-bar .status-info { color: var(--accent); }
-        .status-bar .status-warning { color: var(--warning); }
-        
-        /* ============================================
-           SCROLLBAR
-           ============================================ */
-        ::-webkit-scrollbar {
-            width: 5px;
-            height: 5px;
+        .status-bar .status-success { color: var(--success); font-weight: 500; }
+        .status-bar .status-error { color: var(--danger); font-weight: 500; }
+        .status-bar .status-info { color: var(--text-faint); }
+
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center;
+            z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
-        
-        /* ============================================
-           LOADING
-           ============================================ */
-        .loading {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            color: var(--text-faint);
-            font-size: 13px;
-            gap: 8px;
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal {
+            background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius-lg);
+            box-shadow: 0 20px 60px var(--shadow); width: 90%; max-width: 440px; overflow: hidden;
+            transform: translateY(12px) scale(0.98); transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        
-        .loading::after {
-            content: '';
-            width: 14px;
-            height: 14px;
-            border: 2px solid var(--border);
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
+        .modal-overlay.active .modal { transform: translateY(0) scale(1); }
+        .modal-header {
+            padding: 16px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;
         }
-        
-        @keyframes spin { to { transform: rotate(360deg); } }
-        
-        /* ============================================
-           CHAPTER PROGRESS
-           ============================================ */
-        .chapter-progress {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 11px;
-            color: var(--text-faint);
+        .modal-header h3 { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+        .modal-close { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: transparent; border: none; color: var(--text-faint); font-size: 18px; cursor: pointer; transition: background 0.15s, color 0.15s; }
+        .modal-close:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .modal-body { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .form-group label { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+        .form-group input[type="file"] { padding: 10px 12px; border: 1px dashed var(--border-light); border-radius: var(--radius); background: var(--bg-secondary); color: var(--text-primary); font-size: 13px; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
+        .form-group input[type="file"]:hover { border-color: var(--accent); background: var(--bg-tertiary); }
+        .form-group .hint { font-size: 11px; color: var(--text-faint); }
+        .modal-footer { padding: 14px 18px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
+        .modal-footer button { padding: 7px 14px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--text-secondary); font-size: 13px; cursor: pointer; transition: all 0.2s; }
+        .modal-footer button:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .modal-footer button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 500; }
+        .modal-footer button.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+        .chapter-progress { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+        .progress-bar { width: 60px; height: 3px; background: var(--bg-tertiary); border-radius: 2px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--accent); transition: width 0.2s; }
+
+        .markdown-body { padding: 24px 28px; font-size: 15px; line-height: 1.65; color: var(--text-primary); }
+        .markdown-body h1 { font-size: 1.5em; font-weight: 700; margin: 0 0 0.6em; color: var(--text-primary); letter-spacing: -0.01em; }
+        .markdown-body h2 { font-size: 1.2em; font-weight: 600; margin: 1.2em 0 0.5em; color: var(--text-secondary); }
+        .markdown-body p { margin: 0 0 0.9em; }
+        .markdown-body ul, .markdown-body ol { margin: 0 0 0.9em 1.2em; }
+        .markdown-body li { margin: 0.3em 0; }
+        .markdown-body a { color: var(--link); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
+        .markdown-body a:hover { border-bottom-color: var(--link); }
+        .markdown-body code { background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.88em; }
+        .markdown-body pre { background: var(--bg-tertiary); padding: 12px; border-radius: var(--radius); overflow-x: auto; margin: 0 0 1em; }
+        .markdown-body blockquote { border-left: 3px solid var(--accent); padding-left: 12px; margin: 0 0 1em; color: var(--text-secondary); font-style: italic; }
+        .markdown-body hr { border: none; border-top: 1px solid var(--border); margin: 1.5em 0; }
+        .markdown-body img { max-width: 100%; border-radius: 6px; }
+        .wikilink { color: var(--link); cursor: pointer; border-bottom: 1px dashed var(--link); transition: background 0.15s; }
+        .wikilink:hover { background: var(--selection); border-radius: 3px; }
+
+        .guide-list h1 { font-size: 1.5em; margin-bottom: 16px; }
+        .guide-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+        .guide-card {
+            background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-lg);
+            padding: 16px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
         }
-        
-        .chapter-progress .progress-bar {
-            width: 60px;
-            height: 3px;
-            background: var(--border);
-            border-radius: 2px;
-            overflow: hidden;
+        .guide-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px var(--shadow); border-color: var(--border-light); }
+        .guide-card h3 { font-size: 14px; font-weight: 600; margin: 0 0 6px; color: var(--text-primary); }
+        .guide-card p { font-size: 11px; color: var(--text-faint); margin: 0; }
+
+        .tts-bar {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(120px);
+            background: var(--bg-panel); border: 1px solid var(--border); border-radius: 30px;
+            padding: 8px 16px; display: flex; align-items: center; gap: 12px; box-shadow: 0 8px 32px var(--shadow);
+            z-index: 1000; opacity: 0; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s;
         }
-        
-        .chapter-progress .progress-fill {
-            height: 100%;
-            background: var(--accent);
-            transition: width 0.3s;
-        }
-        
-        /* ============================================
-           RESPONSIVE
-           ============================================ */
+        .tts-bar.visible { transform: translateX(-50%) translateY(0); opacity: 1; }
+        .tts-bar button { background: transparent; border: 1px solid transparent; color: var(--text-secondary); cursor: pointer; padding: 6px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .tts-bar button:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .tts-bar button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .tts-bar .tts-sep { width: 1px; height: 20px; background: var(--border); }
+        .tts-bar .tts-speed { display: flex; gap: 4px; }
+        .tts-bar .tts-speed button { border-radius: 5px; font-size: 11px; padding: 4px 10px; min-width: 36px; }
+
+        .tts-sentence { cursor: pointer; transition: background 0.2s; border-left: 2px solid transparent; padding-left: 4px; margin-left: -6px; border-radius: 0 3px 3px 0; }
+        .tts-sentence:hover { background: var(--bg-tertiary); }
+        .tts-sentence.active { background: var(--tts-highlight); border-left-color: var(--accent); }
+
+        .wiki-panel .wiki-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
         @media (max-width: 768px) {
             .wiki-sidebar { display: none; }
             .panel-divider { display: none; }
             .split-view { flex-direction: column; }
             .panel { min-height: 200px; }
-        }
-        /* ============================================
-           TTS FLOATING BAR
-           ============================================ */
-        .tts-bar {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            background: var(--bg-panel);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 8px 16px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            box-shadow: 0 4px 20px var(--shadow);
-            z-index: 1000;
-            opacity: 0;
-            transition: transform 0.3s ease, opacity 0.3s ease;
-        }
-        .tts-bar.visible {
-            transform: translateX(-50%) translateY(0);
-            opacity: 1;
-        }
-        .tts-bar button {
-            background: transparent;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            padding: 6px;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.2s, color 0.2s;
-        }
-        .tts-bar button:hover {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-        }
-        .tts-bar button.active {
-            background: var(--accent);
-            color: #fff;
-        }
-        .tts-bar .tts-sep {
-            width: 1px;
-            height: 20px;
-            background: var(--border);
-        }
-        .tts-bar .tts-speed {
-            display: flex;
-            gap: 4px;
-        }
-        .tts-bar .tts-speed button {
-            font-size: 11px;
-            padding: 4px 10px;
-            min-width: 36px;
-        }
-        .tts-sentence {
-            cursor: pointer;
-            transition: background 0.2s;
-            border-left: 3px solid transparent;
-            padding-left: 4px;
-            margin-left: 0;
-            display: inline;
-        }
-        .tts-sentence:hover {
-            background: var(--bg-tertiary);
-        }
-        .tts-sentence.active {
-            background: var(--selection) !important;
-            border-left-color: var(--accent);
-        }
-        .tts-sentence.block {
-            display: block;
-            margin-bottom: 4px;
+            .toolbar .book-title { max-width: 120px; }
         }
     </style>
 </head>
@@ -1175,12 +393,12 @@
                     Import
                 </button>
                 <div class="separator"></div>
-                <button onclick="prevChapter()" id="btnPrev" disabled title="Previous chapter">‹</button>
+                <button onclick="prevChapter()" id="btnPrev" disabled title="Previous chapter"><svg class="icon" width="14" height="14" aria-hidden="true"><use href="#icon-chevron-left"/></svg></button>
                 <div class="chapter-progress" id="chapterProgress" style="display:none;">
                     <span id="chapterNum">1/1</span>
                     <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
                 </div>
-                <button onclick="nextChapter()" id="btnNext" disabled title="Next chapter">›</button>
+                <button onclick="nextChapter()" id="btnNext" disabled title="Next chapter"><svg class="icon" width="14" height="14" aria-hidden="true"><use href="#icon-chevron-right"/></svg></button>
                 <div class="separator"></div>
                 <span class="book-title" id="bookTitle">No book loaded</span>
                 <button onclick="ttsTogglePlay()" id="btnTTS" title="朗读" style="background:transparent;border:none;color:var(--text-secondary);cursor:pointer;padding:2px 6px;border-radius:4px;margin-left:6px;display:none;align-items:center;">
@@ -1201,9 +419,9 @@
                 </div>
                 <div class="separator"></div>
                 <div class="theme-toggle">
-                    <button onclick="setTheme('dark')" id="themeDark" class="active" title="Dark theme">🌙</button>
-                    <button onclick="setTheme('light')" id="themeLight" title="Light theme">☀️</button>
-                    <button onclick="setTheme('sepia')" id="themeSepia" title="Sepia theme">📜</button>
+                    <button onclick="setTheme('dark')" id="themeDark" class="active" title="Dark theme"><svg class="icon" width="14" height="14" aria-hidden="true"><use href="#icon-moon"/></svg></button>
+                    <button onclick="setTheme('light')" id="themeLight" title="Light theme"><svg class="icon" width="14" height="14" aria-hidden="true"><use href="#icon-sun"/></svg></button>
+                    <button onclick="setTheme('sepia')" id="themeSepia" title="Sepia theme"><svg class="icon" width="14" height="14" aria-hidden="true"><use href="#icon-scroll"/></svg></button>
                 </div>
             </div>
         </div>
@@ -1220,7 +438,7 @@
                 </div>
                 <div class="panel-content" id="bookContent">
                     <div class="empty-state">
-                        <div class="icon">📖</div>
+                        <div class="icon icon-empty"><svg class="icon" width="48" height="48" aria-hidden="true"><use href="#icon-book"/></svg></div>
                         <h3>Welcome to Wiki Reader</h3>
                         <p>Import an EPUB book and a wiki directory to start reading with your notes side by side.</p>
                         <button onclick="showImportModal()">Import Now</button>
@@ -1245,7 +463,7 @@
                     </div>
                     <div class="wiki-sidebar-content" id="wikiFileTree">
                         <div class="empty-state" style="padding: 30px 16px;">
-                            <div class="icon" style="font-size: 28px;">📁</div>
+                            <div class="icon icon-empty" style="font-size: 28px;"><svg class="icon" width="32" height="32" aria-hidden="true"><use href="#icon-folder-open"/></svg></div>
                             <p style="font-size: 11px;">Import a wiki directory to browse files</p>
                         </div>
                     </div>
@@ -1263,15 +481,15 @@
                             <span class="panel-title" id="wikiPanelTitle">No page selected</span>
                         </div>
                         <div class="panel-header-right">
-                            <button onclick="renderGuideList()" id="wikiHomeBtn" title="Guides" style="display:none;">⌂</button>
-                            <button onclick="wikiGoBack()" id="wikiBackBtn" disabled title="Go back">← Back</button>
-                            <button onclick="swapPanels()" title="Swap panels">⇄</button>
+                            <button onclick="renderGuideList()" id="wikiHomeBtn" title="Guides" style="display:none;"><svg class="icon" width="14" height="14" aria-hidden="true"><use href="#icon-home"/></svg></button>
+                            <button onclick="wikiGoBack()" id="wikiBackBtn" disabled title="Go back"><svg class="icon" width="14" height="14" aria-hidden="true"><use href="#icon-arrow-left"/></svg> Back</button>
+                            <button onclick="swapPanels()" title="Swap panels"><svg class="icon" width="14" height="14" aria-hidden="true"><use href="#icon-swap"/></svg></button>
                         </div>
                     </div>
                     <div class="wiki-content-area" id="wikiContentArea">
                         <div class="panel-content" id="wikiContent">
                             <div class="empty-state">
-                                <div class="icon">📝</div>
+                                <div class="icon icon-empty"><svg class="icon" width="48" height="48" aria-hidden="true"><use href="#icon-edit"/></svg></div>
                                 <h3>No Wiki Page</h3>
                                 <p>Select a file from the sidebar to view your notes.</p>
                             </div>
@@ -1823,7 +1041,7 @@
             if (Object.keys(wikiFiles).length === 0) {
                 tree.innerHTML = `
                     <div class="empty-state" style="padding: 30px 16px;">
-                        <div class="icon" style="font-size: 28px;">📁</div>
+                        <div class="icon icon-empty" style="font-size: 28px;"><svg class="icon" width="32" height="32" aria-hidden="true"><use href="#icon-folder-open"/></svg></div>
                         <p style="font-size: 11px;">Import a wiki directory to browse files</p>
                     </div>`;
                 return;
@@ -1865,7 +1083,7 @@
                 item.className = `tree-item ${isFile ? 'file' : 'directory'}`;
                 item.style.paddingLeft = `${12 + depth * 12}px`;
                 
-                const icon = isFile ? '📄' : '📁';
+                const icon = isFile ? `<svg class="icon" width="12" height="12" aria-hidden="true"><use href="#icon-file"/></svg>` : `<svg class="icon" width="12" height="12" aria-hidden="true"><use href="#icon-folder"/></svg>`;
                 item.innerHTML = `<span class="icon">${icon}</span><span>${name}</span>`;
                 
                 if (isFile) {
@@ -1944,7 +1162,7 @@
                 // 没有 guides/ 目录，保持原有空白状态
                 document.getElementById('wikiContent').innerHTML = `
                     <div class="empty-state">
-                        <div class="icon">📝</div>
+                        <div class="icon icon-empty"><svg class="icon" width="48" height="48" aria-hidden="true"><use href="#icon-edit"/></svg></div>
                         <h3>No Wiki Page</h3>
                         <p>Select a file from the sidebar to view your notes.</p>
                     </div>`;
