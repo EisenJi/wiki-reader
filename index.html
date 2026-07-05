@@ -349,6 +349,11 @@
         .guide-card h3 { font-size: 14px; font-weight: 600; margin: 0 0 6px; color: var(--text-primary); }
         .guide-card p { font-size: 11px; color: var(--text-faint); margin: 0; }
 
+        .tts-mode-toggle { color: var(--text-faint); border: 1px solid transparent; border-radius: 16px; padding: 4px 10px; font-weight: 500; }
+        .tts-mode-toggle .icon { color: var(--text-faint); }
+        .tts-mode-toggle.active { background: rgba(95, 163, 192, 0.15); color: var(--accent); border-color: rgba(95, 163, 192, 0.35); }
+        .tts-mode-toggle.active .icon { color: var(--accent); }
+
         .tts-bar {
             position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(120px);
             background: var(--bg-panel); border: 1px solid var(--border); border-radius: 30px;
@@ -401,13 +406,9 @@
                 <button onclick="nextChapter()" id="btnNext" disabled title="Next chapter"><svg class="icon" width="14" height="14" aria-hidden="true"><use href="#icon-chevron-right"/></svg></button>
                 <div class="separator"></div>
                 <span class="book-title" id="bookTitle">No book loaded</span>
-                <button onclick="ttsTogglePlay()" id="btnTTS" title="朗读" style="background:transparent;border:none;color:var(--text-secondary);cursor:pointer;padding:2px 6px;border-radius:4px;margin-left:6px;display:none;align-items:center;">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" id="iconPlay"><path d="M8 5v14l11-7z"/></svg>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" id="iconPause" style="display:none"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/></svg>
-                </button>
-                <button onclick="wikiTtsTogglePlay()" id="btnWikiTTS" title="朗读Wiki" style="background:transparent;border:none;color:var(--text-secondary);cursor:pointer;padding:2px 6px;border-radius:4px;margin-left:6px;display:none;align-items:center;">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" id="wikiIconPlay"><path d="M8 5v14l11-7z"/></svg>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" id="wikiIconPause" style="display:none"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/></svg>
+                <button onclick="toggleTTSMode()" id="btnTTSMode" class="tts-mode-toggle" title="语音听读模式" aria-pressed="false">
+                    <svg class="icon" width="14" height="14" aria-hidden="true"><use href="#icon-play"/></svg>
+                    <span>听读</span>
                 </button>
             </div>
             
@@ -544,6 +545,7 @@
         let wikiHistory = [];
         let fontSize = 18;
         let currentTheme = 'dark';
+        let ttsModeEnabled = false;
         
         // ============================================
         // INDEXEDDB - PERSISTENCE
@@ -616,6 +618,7 @@
         });
         
         function loadSettings() {
+            loadTTSMode();
             const savedTheme = localStorage.getItem('wikiReaderTheme');
             if (savedTheme) setTheme(savedTheme, false);
             
@@ -663,6 +666,36 @@
         // ============================================
         // THEME
         // ============================================
+function toggleTTSMode() {
+            ttsModeEnabled = !ttsModeEnabled;
+            updateTTSModeUI();
+            localStorage.setItem('wikiReaderTTSMode', ttsModeEnabled ? '1' : '0');
+            if (ttsModeEnabled) {
+                TTS.wrap();
+                if (document.getElementById('wikiContent')) WikiTTS.wrap();
+            } else {
+                TTS.stop();
+                WikiTTS.stop();
+                TTS.unwrapSentences();
+                WikiTTS.unwrap();
+            }
+        }
+
+        function updateTTSModeUI() {
+            const btn = document.getElementById('btnTTSMode');
+            if (btn) {
+                btn.classList.toggle('active', ttsModeEnabled);
+                btn.setAttribute('aria-pressed', ttsModeEnabled ? 'true' : 'false');
+                btn.querySelector('span').textContent = ttsModeEnabled ? '听读中' : '听读';
+            }
+        }
+
+        function loadTTSMode() {
+            const saved = localStorage.getItem('wikiReaderTTSMode');
+            ttsModeEnabled = saved === '1';
+            updateTTSModeUI();
+        }
+
         function setTheme(theme, save = true) {
             currentTheme = theme;
             document.body.setAttribute('data-theme', theme);
@@ -831,8 +864,7 @@
             
             document.getElementById('bookTitle').textContent = file.name;
             document.getElementById('bookPanelTitle').textContent = file.name;
-            document.getElementById('btnTTS').style.display = 'inline-flex';
-            document.getElementById('btnWikiTTS').style.display = 'none';
+
             document.getElementById('btnPrev').disabled = true;
             document.getElementById('btnNext').disabled = chapters.length <= 1;
             updateChapterProgress();
@@ -1138,15 +1170,11 @@
             const hasGuides = Object.keys(wikiFiles).some(p => p.toLowerCase().includes('/guides/') || p.toLowerCase().startsWith('guides/'));
             document.getElementById('wikiHomeBtn').style.display = hasGuides ? 'inline-block' : 'none';
 
-            // Show wiki TTS button, hide book TTS button
-            document.getElementById('btnWikiTTS').style.display = 'inline-flex';
-            document.getElementById('btnTTS').style.display = 'none';
-
             // Setup wiki links
             setupWikiLinks(document.getElementById('wikiContent'));
 
-            // Auto-wrap sentences for TTS after render
-            setTimeout(() => WikiTTS.wrap(), 50);
+            // Auto-wrap sentences for TTS after render only if TTS mode enabled
+            if (ttsModeEnabled) setTimeout(() => WikiTTS.wrap(), 50);
         }
 
         // ============================================
@@ -1208,9 +1236,7 @@
                 });
             });
 
-            // 显示 wiki TTS 按钮（可选，因为列表页可能不需要 TTS，但保持按钮显示一致）
-            document.getElementById('btnWikiTTS').style.display = 'inline-flex';
-            document.getElementById('btnTTS').style.display = 'none';
+
         }
         
         function wikiGoBack() {
@@ -1451,7 +1477,7 @@
 
         // Space key toggles play/pause for whichever TTS is active
         document.addEventListener('keydown', (e) => {
-            if (e.key === ' ' && e.target === document.body) {
+            if (e.key === ' ' && e.target === document.body && ttsModeEnabled) {
                 e.preventDefault();
                 if (TTS.state !== 'idle') {
                     ttsTogglePlay();
@@ -1481,26 +1507,18 @@
             showBar() {
                 const bar = document.getElementById('ttsBar');
                 if (bar) bar.classList.add('visible');
-                const btn = document.getElementById('btnTTS');
-                if (btn) btn.style.display = 'inline-flex';
             },
             hideBar() {
                 const bar = document.getElementById('ttsBar');
                 if (bar) bar.classList.remove('visible');
-                const btn = document.getElementById('btnTTS');
-                if (btn) btn.style.display = 'none';
             },
             
             updatePlayIcon() {
                 const play = document.getElementById('ttsIconPlay');
                 const pause = document.getElementById('ttsIconPause');
-                const btnPlay = document.getElementById('iconPlay');
-                const btnPause = document.getElementById('iconPause');
                 const isPlaying = this.state === 'playing';
                 if (play) play.style.display = isPlaying ? 'none' : 'block';
                 if (pause) pause.style.display = isPlaying ? 'block' : 'none';
-                if (btnPlay) btnPlay.style.display = isPlaying ? 'none' : 'block';
-                if (btnPause) btnPause.style.display = isPlaying ? 'block' : 'none';
             },
             
             updateSpeedButtons() {
@@ -1519,10 +1537,25 @@
             clearHighlight() {
                 this.sentences.forEach(s => s.classList.remove('active'));
             },
+
+            unwrapSentences() {
+                const container = document.getElementById('bookContent');
+                if (!container) return;
+                container.querySelectorAll('.tts-sentence').forEach(span => {
+                    const parent = span.parentNode;
+                    if (parent) {
+                        const text = document.createTextNode(span.textContent);
+                        parent.insertBefore(text, span);
+                        parent.removeChild(span);
+                    }
+                });
+                this.sentences = [];
+                this.clearHighlight();
+            },
             
             wrap() {
                 const container = document.getElementById('bookContent');
-                if (!container) return;
+                if (!container || !ttsModeEnabled) return;
                 const paragraphs = container.querySelectorAll('p');
                 this.sentences = [];
                 paragraphs.forEach(p => {
@@ -1684,12 +1717,8 @@
                 const isPlaying = this.state === 'playing';
                 const play = document.getElementById('ttsIconPlay');
                 const pause = document.getElementById('ttsIconPause');
-                const btnPlay = document.getElementById('wikiIconPlay');
-                const btnPause = document.getElementById('wikiIconPause');
                 if (play) play.style.display = isPlaying ? 'none' : 'block';
                 if (pause) pause.style.display = isPlaying ? 'block' : 'none';
-                if (btnPlay) btnPlay.style.display = isPlaying ? 'none' : 'block';
-                if (btnPause) btnPause.style.display = isPlaying ? 'block' : 'none';
             },
             
             updateSpeedButtons() {
@@ -1708,10 +1737,25 @@
             clearHighlight() {
                 this.sentences.forEach(s => s.classList.remove('active'));
             },
+
+            unwrapSentences() {
+                const container = document.getElementById('bookContent');
+                if (!container) return;
+                container.querySelectorAll('.tts-sentence').forEach(span => {
+                    const parent = span.parentNode;
+                    if (parent) {
+                        const text = document.createTextNode(span.textContent);
+                        parent.insertBefore(text, span);
+                        parent.removeChild(span);
+                    }
+                });
+                this.sentences = [];
+                this.clearHighlight();
+            },
             
             wrap() {
                 const container = document.getElementById('wikiContent');
-                if (!container) return;
+                if (!container || !ttsModeEnabled) return;
                 // Unwrap first if already wrapped
                 this.unwrap();
                 const paragraphs = container.querySelectorAll('p, li, h1, h2, h3, h4, h5, h6, blockquote');
@@ -1908,7 +1952,7 @@
             if (TTS.state !== 'idle') {
                 TTS.stop();
             }
-            setTimeout(() => TTS.wrap(), 100);
+            if (ttsModeEnabled) setTimeout(() => TTS.wrap(), 100);
         };
     </script>
 
