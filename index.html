@@ -406,9 +406,9 @@
                 <button onclick="nextChapter()" id="btnNext" disabled title="Next chapter"><svg class="icon" width="14" height="14" aria-hidden="true"><use href="#icon-chevron-right"/></svg></button>
                 <div class="separator"></div>
                 <span class="book-title" id="bookTitle">No book loaded</span>
-                <button onclick="toggleTTSMode()" id="btnTTSMode" class="tts-mode-toggle" title="语音听读模式" aria-pressed="false">
+                <button onclick="toggleTTSMode()" id="btnTTSMode" class="tts-mode-toggle" title="Voice reading mode" aria-pressed="false">
                     <svg class="icon" width="14" height="14" aria-hidden="true"><use href="#icon-play"/></svg>
-                    <span>听读</span>
+                    <span>Listen</span>
                 </button>
             </div>
             
@@ -686,7 +686,7 @@ function toggleTTSMode() {
             if (btn) {
                 btn.classList.toggle('active', ttsModeEnabled);
                 btn.setAttribute('aria-pressed', ttsModeEnabled ? 'true' : 'false');
-                btn.querySelector('span').textContent = ttsModeEnabled ? '听读中' : '听读';
+                btn.querySelector('span').textContent = ttsModeEnabled ? 'On' : 'Listen';
             }
         }
 
