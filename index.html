@@ -336,6 +336,11 @@
         .markdown-body blockquote { border-left: 3px solid var(--accent); padding-left: 12px; margin: 0 0 1em; color: var(--text-secondary); font-style: italic; }
         .markdown-body hr { border: none; border-top: 1px solid var(--border); margin: 1.5em 0; }
         .markdown-body img { max-width: 100%; border-radius: 6px; }
+        .markdown-body table { width: 100%; border-collapse: collapse; margin: 0 0 1em; font-size: 0.95em; }
+        .markdown-body th, .markdown-body td { padding: 8px 12px; border: 1px solid var(--border); vertical-align: top; }
+        .markdown-body th { background: var(--bg-tertiary); font-weight: 600; color: var(--text-primary); }
+        .markdown-body tr:nth-child(even) { background: var(--bg-tertiary); }
+        .markdown-body tr:hover { background: var(--bg-secondary); }
         .wikilink { color: var(--link); cursor: pointer; border-bottom: 1px dashed var(--link); transition: background 0.15s; }
         .wikilink:hover { background: var(--selection); border-radius: 3px; }
 
@@ -452,7 +457,7 @@
             
             <!-- Wiki Panel -->
             <div class="panel wiki-panel" id="wikiPanel">
-                <div class="wiki-sidebar collapsed" id="wikiSidebar">
+                <div class="wiki-sidebar" id="wikiSidebar">
                     <div class="wiki-sidebar-header">
                         <h3>Files</h3>
                         <button class="sidebar-toggle" onclick="toggleWikiSidebar()" title="Toggle sidebar">
@@ -614,6 +619,7 @@
             await openDB();
             setupDividerDrag();
             loadSettings();
+            syncWikiSidebarState();
             await restoreSession();
         });
         
@@ -658,6 +664,9 @@
                 if (hasGuides) {
                     renderGuideList();
                 }
+
+                // Make sure the file tree is visible on restore
+                expandWikiSidebar();
 
                 updateStatus('Wiki restored from previous session', 'success');
             }
@@ -1059,6 +1068,9 @@ function toggleTTSMode() {
 
             updateStatus('Wiki loaded: ' + Object.keys(wikiFiles).length + ' files', 'success');
 
+            // Auto-expand sidebar so the file tree is visible after import
+            expandWikiSidebar();
+
             // 自动显示 guide 列表（如果存在）
             const hasGuides = Object.keys(wikiFiles).some(p => p.toLowerCase().includes('/guides/') || p.toLowerCase().startsWith('guides/'));
             if (hasGuides) {
@@ -1282,6 +1294,70 @@ function toggleTTSMode() {
             loadWikiPage(fullPath, null);
         }
         
+        function parseMarkdownTables(md) {
+            const lines = md.split('\n');
+            const out = [];
+            let i = 0;
+            while (i < lines.length) {
+                const line = lines[i];
+                if (line.trim().startsWith('|')) {
+                    let j = i;
+                    while (j < lines.length && lines[j].trim().startsWith('|')) j++;
+                    const block = lines.slice(i, j);
+                    if (block.length >= 2 && isTableSeparator(block[1].trim())) {
+                        out.push(renderMarkdownTable(block));
+                        i = j;
+                        continue;
+                    }
+                }
+                out.push(line);
+                i++;
+            }
+            return out.join('\n');
+        }
+        
+        function isTableSeparator(line) {
+            const cells = line.split('|').slice(1, -1).map(s => s.trim()).filter(s => s !== '');
+            if (cells.length === 0) return false;
+            return cells.every(c => /^:?-+:?$/.test(c));
+        }
+        
+        function renderMarkdownTable(block) {
+            const rows = block.map(line => {
+                const parts = line.split('|');
+                parts.shift();
+                parts.pop();
+                return parts.map(s => s.trim());
+            });
+            
+            const align = rows[1].map(cell => {
+                if (cell.startsWith(':') && cell.endsWith(':')) return 'center';
+                if (cell.endsWith(':')) return 'right';
+                return 'left';
+            });
+            
+            const header = rows[0];
+            const body = rows.slice(2);
+            
+            const cellStyle = (a) => a === 'center' ? 'style="text-align:center"' : a === 'right' ? 'style="text-align:right"' : '';
+            
+            let html = '<table><thead><tr>';
+            header.forEach((cell, idx) => {
+                html += `<th ${cellStyle(align[idx])}>${cell}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+            
+            body.forEach(row => {
+                html += '<tr>';
+                row.forEach((cell, idx) => {
+                    html += `<td ${cellStyle(align[idx])}>${cell}</td>`;
+                });
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+            return html;
+        }
+        
         function markdownToHtml(md) {
             // Extract frontmatter
             let frontmatter = '';
@@ -1332,6 +1408,9 @@ function toggleTTSMode() {
             // Horizontal rules
             md = md.replace(/^\-\-\-+/gim, '<hr>');
             
+            // Tables
+            md = parseMarkdownTables(md);
+            
             // Paragraphs
             const lines = md.split('\n');
             let result = [];
@@ -1375,6 +1454,19 @@ function toggleTTSMode() {
         // WIKI SIDEBAR TOGGLE
         // ============================================
         let wikiSidebarCollapsed = false;
+        
+        function syncWikiSidebarState() {
+            const sidebar = document.getElementById('wikiSidebar');
+            const showBtn = document.getElementById('wikiSidebarShowBtn');
+            if (!sidebar) return;
+            wikiSidebarCollapsed = sidebar.classList.contains('collapsed');
+            if (showBtn) showBtn.style.display = wikiSidebarCollapsed ? 'flex' : 'none';
+        }
+        
+        function expandWikiSidebar() {
+            if (!wikiSidebarCollapsed) return;
+            toggleWikiSidebar();
+        }
         
         function toggleWikiSidebar() {
             const sidebar = document.getElementById('wikiSidebar');
